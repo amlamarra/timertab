@@ -15,7 +15,7 @@ function disp_usage {
 
 function disp_help {
     echo "Usage: $0 [-u|--user] OPTION [ARGUMENT]"
-    echo 'List, create, modify, & delete Systemd Timers'
+    echo 'Manage your Systemd Timers'
     echo 'Only use one option at a time (not including -u)'
     echo
     echo '  -u, --user        Deal only with user timers (not run as root)'
