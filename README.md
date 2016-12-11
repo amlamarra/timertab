@@ -1,7 +1,9 @@
 # timertab
+
+An easy way to manage your Systemd Timers.
+
 ```
 Usage: ./timertab [-u|--user] OPTION [ARGUMENT]
-List, create, modify, & delete Systemd Timers
 Only use one option at a time (not including -u)
 
   -u, --user        Deal only with user timers (not run as root)
