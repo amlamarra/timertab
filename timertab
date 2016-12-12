@@ -121,7 +121,7 @@ function calendar_syntax {
 }
 
 function list_timers {
-    systemctl $user list-timers --all
+    systemctl "$user" list-timers --all
     echo
     exit 0
 }
@@ -130,31 +130,28 @@ function get_name {
     name="$1"
     # Prompt user for the name of the timer
     if [[ -z "$1" ]]; then
-        read -p "Name of timer: " name
+        read -rp "Name of timer: " name
         echo
     fi
     
     # Add the .timer extension if the user didn't specify it
     if [[ $(echo "$name" | rev | cut -d '.' -f 1 | rev) != "timer" ]]; then
         timer_prefix="$name"
-        name=""$name".timer"
+        name="$name.timer"
     else
         timer_prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev)
     fi
 }
 
 function get_srvc_name {
-    srvc_name="$1"
     # Prompt user for the name of the service
-    if [[ -z "$1" ]]; then
-        read -p "Name of service: " srvc_name
-        echo
-    fi
+    read -rp "Name of service: " srvc_name
+    echo
     
     # Add the .service extension if the user didn't specify it
     if [[ $(echo "$srvc_name" | rev | cut -d '.' -f 1 | rev) != "service" ]]; then
         srvc_prefix="$srvc_name"
-        srvc_name=""$srvc_name".service"
+        srvc_name="$srvc_name.service"
     else
         srvc_prefix=$(echo "$srvc_name" | rev | cut -d '.' -f 2- | rev)
     fi
@@ -165,7 +162,7 @@ function get_path {
     if [[ -n "$user" ]]; then # If the user option is set
         path=$USER_PATH
     else
-        read -p "Path to the timer: (/etc/systemd/system/) " path
+        read -rp "Path to the timer: (/etc/systemd/system/) " path
         if [[ "$path" == '' ]]; then path="/etc/systemd/system/"; fi
         echo
     fi
@@ -176,26 +173,26 @@ function get_srvc_path {
     if [[ -n "$user" ]]; then # If the user option is set
         srvc_path=$USER_PATH
     else
-        read -p "Path to the service: (/etc/systemd/system/) " srvc_path
+        read -rp "Path to the service: (/etc/systemd/system/) " srvc_path
         if [[ "$srvc_path" == '' ]]; then srvc_path="/etc/systemd/system/"; fi
         echo
     fi
 }
 
 function new_timer {
-    get_name $1
+    get_name "$1"
     
     get_path
     
     # Create the directory, if necessary
     if [[ -n "$user" ]]; then mkdir -p $path; fi
     
-    echo -e "Let's create a new timer called \""$name"\"\n"
-    timer_file="$path""$name"
+    echo -e "Let's create a new timer called \"$name\"\n"
+    timer_file="$path$name"
     
     # Prompt the user to see if we need to set the Unit= option.
     while [[ "$existing" != 'y' ]] && [[ "$existing" != 'n' ]]; do
-        read -p "Will this timer control an existing service? (y/N) " existing
+        read -rp "Will this timer control an existing service? (y/N) " existing
         existing="$(echo "$existing" | tr '[:upper:]' '[:lower:]')"
         if [[ "$existing" == '' ]]; then existing="n"; fi
         echo
@@ -206,19 +203,19 @@ function new_timer {
         get_srvc_name
         
         get_srvc_path
-        srvc_file="$srvc_path""$srvc_name"
+        srvc_file="$srvc_path$srvc_name"
         
         # If the service file doesn't exist...
         while [[ ! -e "$srvc_file" ]]; do
-            echo "That service file does not exist in the default path ("$path")"
-            read -p "Would you like to specify a different path? (y/N) " ans
+            echo "That service file does not exist in the default path ($path)"
+            read -rp "Would you like to specify a different path? (y/N) " ans
             ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]')"
             if [[ "$ans" == '' ]]; then ans="n"; fi
             if [[ "$ans" == 'y' ]]; then get_srvc_name; else exit 1; fi
         done
         
         if [[ ! -e "$srvc_file" ]]; then
-            echo "The service file does not exist ("$srvc_file")"
+            echo "The service file does not exist ($srvc_file)"
             exit 1
         fi
     # If no, then just set the appropriate variables
@@ -226,15 +223,15 @@ function new_timer {
         srvc_prefix="$timer_prefix"
         srvc_name="$timer_prefix.service"
         srvc_path="$path"
-        srvc_file="$srvc_path""$srvc_name"
+        srvc_file="$srvc_path$srvc_name"
     fi
     
     # Creating the timer file & adding the description
-    undwht='\e[4;37m' # Underline White
-    txtrst='\e[0m'    # Text Reset
-    echo -e "\n"$undwht"Let's create the timer file"$txtrst"\n"
-    read -p "<"$name"> Description: " Description
-    echo -e "[Unit]\nDescription="$Description"\n\n[Timer]" > $timer_file
+    # '\e[4;37m' = Underline White
+    # '\e[0m' = Text Reset
+    echo -e "\n\e[4;37mLet's create the timer file\e[0m\n"
+    read -rp "<$name> Description: " Description
+    echo -e "[Unit]\nDescription=$Description\n\n[Timer]" > "$timer_file"
     
     # What type of timer will this be?
     echo -e '\nRealtime timers will activate at a specific time or day.'
@@ -256,29 +253,29 @@ function new_timer {
     # Setting timer frequencies
     if [[ $type == "Monotonic" ]]; then
         echo '(simply enter "s" without quotes to display the syntax)'
-        read -p 'How long should the timer wait after boot before being activated? ' OnBootSec
+        read -rp 'How long should the timer wait after boot before being activated? ' OnBootSec
         
         if [[ "$OnBootSec" == "s" ]]; then
             echo
             time_syntax
-            read -p 'How long should the timer wait after boot before being activated? ' OnBootSec
+            read -rp 'How long should the timer wait after boot before being activated? ' OnBootSec
         fi
         echo
-        read -p 'How frequently should the timer be activated after that? ' OnUnitActiveSec
+        read -rp 'How frequently should the timer be activated after that? ' OnUnitActiveSec
         echo
         
         # Add this information to the timer file
-        echo -e "OnBootSec="$OnBootSec"\nOnUnitActiveSec="$OnUnitActiveSec"" >> $timer_file
+        echo -e "OnBootSec=$OnBootSec\nOnUnitActiveSec=$OnUnitActiveSec" >> "$timer_file"
     elif [[ $type == "Realtime" ]]; then
         echo '(simply enter "s" without quotes to display the syntax)'
-        read -p 'Enter the calendar event expression: ' OnCalendar
+        read -rp 'Enter the calendar event expression: ' OnCalendar
         
         if [[ "$OnCalendar" == "s" ]]; then
             echo
             calendar_syntax
-            read -p 'Enter the calendar event expression: ' OnCalendar
+            read -rp 'Enter the calendar event expression: ' OnCalendar
         fi
-        echo -e "OnCalendar="$OnCalendar"" >> $timer_file
+        echo -e "OnCalendar=$OnCalendar" >> "$timer_file"
         echo
     fi
     
@@ -290,8 +287,8 @@ function new_timer {
     select type in "${options[@]}"
     do
         case $type in
-            "AccuracySec=") read -p 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec; echo;;
-            "RandomizedDelaySec=") read -p 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec; echo;;
+            "AccuracySec=") read -rp 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec; echo;;
+            "RandomizedDelaySec=") read -rp 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec; echo;;
             "Persistent=") Persistent=true; echo -e 'Adding Persistent=true\n';;
             "WakeSystem=") WakeSystem=true; echo -e 'Adding WakeSystem=true\n';;
             "RemainAfterElapse=") RemainAfterElapse=false; echo -e 'Adding RemainAfterElapse=false\n';;
@@ -301,103 +298,103 @@ function new_timer {
         esac
     done
     
-    if [[ -n "$AccuracySec" ]]; then echo "AccuracySec="$AccuracySec"" >> $timer_file; fi
-    if [[ -n "$RandomizedDelaySec" ]]; then echo "RandomizedDelaySec="$RandomizedDelaySec"" >> $timer_file; fi
-    if [[ -n "$Persistent" ]]; then echo "Persistent=$Persistent" >> $timer_file; fi
-    if [[ -n "$WakeSystem" ]]; then echo "WakeSystem=$WakeSystem" >> $timer_file; fi
-    if [[ -n "$RemainAfterElapse" ]]; then echo "RemainAfterElapse=$RemainAfterElapse" >> $timer_file; fi
+    if [[ -n "$AccuracySec" ]]; then echo "AccuracySec=$AccuracySec" >> "$timer_file"; fi
+    if [[ -n "$RandomizedDelaySec" ]]; then echo "RandomizedDelaySec=$RandomizedDelaySec" >> "$timer_file"; fi
+    if [[ -n "$Persistent" ]]; then echo "Persistent=$Persistent" >> "$timer_file"; fi
+    if [[ -n "$WakeSystem" ]]; then echo "WakeSystem=$WakeSystem" >> "$timer_file"; fi
+    if [[ -n "$RemainAfterElapse" ]]; then echo "RemainAfterElapse=$RemainAfterElapse" >> "$timer_file"; fi
     
     # Add the Unit= option to the timer file if necessary
     if [[ "$srvc_prefix" != "$timer_prefix" ]]; then
-        echo "Unit="$srvc_file"" >> $timer_file
+        echo "Unit=$srvc_file" >> "$timer_file"
     fi
     
     # Add the [Install] section
-    echo -e '\n[Install]\nWantedBy=timers.target' >> $timer_file
-    echo -e "\nThe following timer file has been created: "$timer_file"\n"
+    echo -e '\n[Install]\nWantedBy=timers.target' >> "$timer_file"
+    echo -e "\nThe following timer file has been created: $timer_file\n"
     
     # Creating the service file
     if [[ "$existing" == 'n' ]]; then
-        echo -e "\n"$undwht"Let's create the service file"$txtrst"\n"
+        echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
         
-        read -p "<"$srvc_name"> Description: " Description
-        read -p 'What command/script should the service run? (absolute path only) ' ExecStart
+        read -rp "<$srvc_name> Description: " Description
+        read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
         echo
-        echo -e "[Unit]\nDescription="$Description"\n" > $srvc_file
-        echo -e "[Service]\nExecStart="$ExecStart"\n" >> $srvc_file
-        echo -e "[Install]\nWantedBy=default.target" >> $srvc_file
+        echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
+        echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
+        echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
         
-        echo -e "\nThe following service file has been created: "$srvc_file"\n"
+        echo -e "\nThe following service file has been created: $srvc_file\n"
     fi
     
     exit 0
 }
 
 function enable_timer {
-    get_name $1
+    get_name "$1"
     
     # Try enabling the timer
-    systemctl $user enable "$name"
-    echo -e ""$name" has been enabled\n"
+    systemctl "$user" enable "$name"
+    echo -e "$name has been enabled\n"
     
     exit 0
 }
 
 function start_timer {
-    get_name $1
+    get_name "$1"
     
     # Try starting the timer
-    systemctl $user start "$name"
-    echo -e ""$name" has been started\n"
+    systemctl "$user" start "$name"
+    echo -e "$name has been started\n"
     
     exit 0
 }
 
 function stop_timer {
-    get_name $1
+    get_name "$1"
     
     # Try stopping the timer
-    systemctl $user stop "$name"
-    echo -e ""$name" has been stopped\n"
+    systemctl "$user" stop "$name"
+    echo -e "$name has been stopped\n"
     
     exit 0
 }
 
 function disable_timer {
-    get_name $1
+    get_name "$1"
     
     get_path
     
     # Check if the timer exists
-    if [[ ! -e "$path""$name" ]]; then
-        echo -e "That timer ("$path""$name") does not exist\n"
+    if [[ ! -e "$path$name" ]]; then
+        echo -e "That timer ($path$name) does not exist\n"
         exit 1
     else # If so, then disable it
-        systemctl $user disable "$name"
-        echo -e ""$name" has been disabled\n"
+        systemctl "$user" disable "$name"
+        echo -e "$name has been disabled\n"
     fi
     
     exit 0
 }
 
 function remove_timer {
-    get_name $1
+    get_name "$1"
     
     get_path
     
     # Prompt to remove associated service file
     while [[ $ans != 'y' ]] && [[ $ans != 'n' ]]; do
-        read -p "Remove the associated service file of the same prefix? (y/N) " ans
+        read -rp "Remove the associated service file of the same prefix? (y/N) " ans
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [[ "$ans" == '' ]]; then ans="n"; fi
     done
     if [[ "$ans" == "y" ]]; then
-        prefix=$(echo $name | rev | cut -d '.' -f 2- | rev) # Removing extension
-        rm ""$path""$prefix".service"
+        prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
+        rm "$path$prefix.service"
     fi
     
-    rm "$path""$name"
-    echo -e ""$name" has been removed\n"
+    rm "$path$name"
+    echo -e "$name has been removed\n"
     
     exit 0
 }
@@ -416,10 +413,10 @@ fi
 
 USER_PATH="$HOME/.config/systemd/user/"
 
-while [[ $# > 0 ]]; do
+while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
-        -u|--user ) user="--user";;
+        -u|--user ) user='--user';;
         -h|--help ) disp_help;;
         -l|--list ) list_timers;;
         -n|--new ) new_timer "$2"; shift;;
