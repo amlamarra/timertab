@@ -433,3 +433,6 @@ done
 # Features to implement:
 #   -m | --modify  option
 #   Turn cron jobs into timers!
+#   The "options" aren't actually options.
+#     Use this:   ./timertab new
+#     Instead of: ./timertab -n
