@@ -4,7 +4,7 @@ An easy way to manage your Systemd Timers.
 
 ```
 Usage: ./timertab [-u|--user] COMMAND [ARGUMENT...]
-Only use one option at a time (not including -u)
+Only use one command at a time
 
   -u, --user         Deal only with user timers (not run as root)
 
