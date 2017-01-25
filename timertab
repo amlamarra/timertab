@@ -433,5 +433,5 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   -m | --modify  option
+#   modify  command
 #   Turn cron jobs into timers!
