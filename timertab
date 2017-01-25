@@ -124,7 +124,7 @@ function calendar_syntax {
 }
 
 function list_timers {
-    systemctl "$user" list-timers --all
+    systemctl $user list-timers --all
     echo
     exit 0
 }
