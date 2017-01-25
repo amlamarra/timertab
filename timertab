@@ -433,5 +433,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   modify  command
-#   Turn cron jobs into timers!
+#   - modify  command
+#       Opens the .timer file in the default text editor
+#   - Turn cron jobs into timers!
+#       Either convert all cron jobs or select ones
