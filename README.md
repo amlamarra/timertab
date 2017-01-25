@@ -17,4 +17,5 @@ COMMANDS:
   stop [NAME...]     Stop timer
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
+  modify [NAME...]   Opens the .timer file for editing in vi
 ```

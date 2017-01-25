@@ -29,6 +29,7 @@ function disp_help {
     echo '  stop [NAME...]     Stop timer'
     echo '  disable [NAME...]  Disable timer'
     echo '  remove [NAME...]   Remove (delete) timer and/or associated service files'
+    echo '  modify [NAME...]   Opens the .timer file for editing in vi'
     echo
     exit 0
 }
@@ -160,23 +161,32 @@ function get_srvc_name {
 }
 
 function get_path {
-    # Set the path
+    # Set the path variable
     if [[ -n "$user" ]]; then # If the user option is set
         path=$USER_PATH
     else
         read -rp "Path to the timer: (/etc/systemd/system/) " path
-        if [[ "$path" == '' ]]; then path="/etc/systemd/system/"; fi
+        if [[ "$path" == '' ]]; then
+            path="/etc/systemd/system/"
+        # If the user left off the slash at the end, then add it
+        elif [[ "${path: -1}" != '/' ]]; then
+            path="$path/"
+        fi
         echo
     fi
 }
 
 function get_srvc_path {
-    # Set the path
+    # Set the srvc_path variable
     if [[ -n "$user" ]]; then # If the user option is set
         srvc_path=$USER_PATH
     else
         read -rp "Path to the service: (/etc/systemd/system/) " srvc_path
-        if [[ "$srvc_path" == '' ]]; then srvc_path="/etc/systemd/system/"; fi
+        if [[ "$srvc_path" == '' ]]; then
+            srvc_path="/etc/systemd/system/"
+        elif [[ "${srvc_path: -1}" != '/' ]]; then
+            srvc_path="$srvc_path/"
+        fi
         echo
     fi
 }
@@ -401,6 +411,14 @@ function remove_timer {
     exit 0
 }
 
+function modify_timer {
+    get_name "$1"
+
+    get_path
+
+    "${EDITOR:-vi}" "$path$name"
+}
+
 # If no options are supplied, display usage & exit
 if [[ $# == 0 ]]; then disp_usage; fi
 
@@ -427,6 +445,7 @@ while [[ $# -gt 0 ]]; do
         stop ) stop_timer "$2"; shift;;
         disable ) disable_timer "$2"; shift;;
         remove ) remove_timer "$2"; shift;;
+        modify ) modify_timer "$2"; shift;;
         * ) disp_usage;;
     esac
     shift
