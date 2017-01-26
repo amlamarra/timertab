@@ -416,6 +416,8 @@ function modify_timer {
 
     get_path
 
+    # Open the .timer file in the default editor specified by $EDITOR.
+    # If that variable is not set, open in vi
     "${EDITOR:-vi}" "$path$name"
 }
 
@@ -452,7 +454,5 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   - modify  command
-#       Opens the .timer file in the default text editor
 #   - Turn cron jobs into timers!
 #       Either convert all cron jobs or select ones
