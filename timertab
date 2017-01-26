@@ -4,8 +4,8 @@ set -e
 echo
 
 # Make sure systemd is installed
-#command -v systemctl >/dev/null 2>&1 || { echo -e \
-#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+command -v systemctl >/dev/null 2>&1 || { echo -e \
+"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
     echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
@@ -426,7 +426,7 @@ function convert {
     echo 'You have the following cron jobs:'
     echo
     # Save just the cron job info to the crons variable
-    crons=$(crontab -l | grep '[^[:blank:]]' | grep -v '^#')
+    crons=$(crontab -l | grep '[^[:blank:]]' | grep -v '^#' | tr '\t' ' ' )
     echo "$crons"
     echo
     
@@ -436,7 +436,12 @@ function convert {
     #printf "%s\n" "${lines[@]}"
     for i in "${lines[@]}"
     do
-        echo $i
+        # min hour dom month dow
+        min=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 1)
+        hour=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 2)
+        dom=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 3)
+        month=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 4)
+        dow=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 5)
     done  
 }
 
@@ -452,6 +457,7 @@ elif [[ ( "$1" == "-u" || "$1" == "--user" ) && $# -gt 3 ]]; then
     disp_usage
 fi
 
+# Set the path for when the --user option is specified
 USER_PATH="$HOME/.config/systemd/user/"
 
 while [[ $# -gt 0 ]]; do
@@ -476,15 +482,3 @@ done
 # Features to implement:
 #   - Turn cron jobs into timers!
 #       Either convert all cron jobs or select ones
-
-
-if [[ $# == 0 ]]; then disp_usage; fi
-
-# Make sure the user isn't using too many options
-if [[ ( $1 != "-u" && $1 != "--user" ) && $# -gt 2 ]]; then
-    echo -e "Only use one option at a time\n"
-    disp_usage
-elif [[ ( $1 == "-u" || $1 == "--user" ) && $# -gt 3 ]]; then
-    echo -e "Only use one option at a time (not including the user option)\n"
-    disp_usage
-fi
