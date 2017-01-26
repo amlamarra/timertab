@@ -425,9 +425,19 @@ function modify_timer {
 function convert {
     echo 'You have the following cron jobs:'
     echo
+    # Save just the cron job info to the crons variable
     crons=$(crontab -l | grep '[^[:blank:]]' | grep -v '^#')
     echo "$crons"
     echo
+    
+    # Save each line to an element in an array called 'lines'
+    IFS=$'\r\n' GLOBIGNORE='*' command eval 'lines=($(echo "$crons"))'
+    # Display each line
+    #printf "%s\n" "${lines[@]}"
+    for i in "${lines[@]}"
+    do
+        echo $i
+    done  
 }
 
 # If no options are supplied, display usage & exit
@@ -466,3 +476,15 @@ done
 # Features to implement:
 #   - Turn cron jobs into timers!
 #       Either convert all cron jobs or select ones
+
+
+if [[ $# == 0 ]]; then disp_usage; fi
+
+# Make sure the user isn't using too many options
+if [[ ( $1 != "-u" && $1 != "--user" ) && $# -gt 2 ]]; then
+    echo -e "Only use one option at a time\n"
+    disp_usage
+elif [[ ( $1 == "-u" || $1 == "--user" ) && $# -gt 3 ]]; then
+    echo -e "Only use one option at a time (not including the user option)\n"
+    disp_usage
+fi
