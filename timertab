@@ -4,8 +4,8 @@ set -e
 echo
 
 # Make sure systemd is installed
-command -v systemctl >/dev/null 2>&1 || { echo -e \
-"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+#command -v systemctl >/dev/null 2>&1 || { echo -e \
+#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
     echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
@@ -30,6 +30,7 @@ function disp_help {
     echo '  disable [NAME...]  Disable timer'
     echo '  remove [NAME...]   Remove (delete) timer and/or associated service files'
     echo '  modify [NAME...]   Opens the .timer file for editing in vi'
+    echo '  convert [NAME...]  Convert a cron job into a Systemd timer'
     echo
     exit 0
 }
@@ -421,6 +422,14 @@ function modify_timer {
     "${EDITOR:-vi}" "$path$name"
 }
 
+function convert {
+    echo 'You have the following cron jobs:'
+    echo
+    crons=$(crontab -l | grep '[^[:blank:]]' | grep -v '^#')
+    echo "$crons"
+    echo
+}
+
 # If no options are supplied, display usage & exit
 if [[ $# == 0 ]]; then disp_usage; fi
 
@@ -448,6 +457,7 @@ while [[ $# -gt 0 ]]; do
         disable ) disable_timer "$2"; shift;;
         remove ) remove_timer "$2"; shift;;
         modify ) modify_timer "$2"; shift;;
+        convert ) convert "$2"; shift;;
         * ) disp_usage;;
     esac
     shift

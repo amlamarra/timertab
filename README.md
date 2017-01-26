@@ -18,4 +18,5 @@ COMMANDS:
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
   modify [NAME...]   Opens the .timer file for editing in vi
+  convert [NAME...]  Convert a cron job into a Systemd timer
 ```
