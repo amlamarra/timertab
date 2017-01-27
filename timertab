@@ -4,8 +4,8 @@ set -e
 echo
 
 # Make sure systemd is installed
-command -v systemctl >/dev/null 2>&1 || { echo -e \
-"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+#command -v systemctl >/dev/null 2>&1 || { echo -e \
+#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
     echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
@@ -30,7 +30,7 @@ function disp_help {
     echo '  disable [NAME...]  Disable timer'
     echo '  remove [NAME...]   Remove (delete) timer and/or associated service files'
     echo '  modify [NAME...]   Opens the .timer file for editing in vi'
-    echo '  convert [NAME...]  Convert a cron job into a Systemd timer'
+    echo '  convert            Convert a cron job into a Systemd timer'
     echo
     exit 0
 }
@@ -420,29 +420,47 @@ function modify_timer {
     # Open the .timer file in the default editor specified by $EDITOR.
     # If that variable is not set, open in vi
     "${EDITOR:-vi}" "$path$name"
+    
+    exit 0
 }
 
 function convert {
-    echo 'You have the following cron jobs:'
-    echo
-    # Save just the cron job info to the crons variable
-    crons=$(crontab -l | grep '[^[:blank:]]' | grep -v '^#' | tr '\t' ' ' )
-    echo "$crons"
+    # Save the contents of crontab to a variable
+    # If no crontab exists, then exit the script
+    if ! crons=$(crontab -l); then echo; exit 1; fi
+    
+    # Strip the crontab file to just the list of cron jobs
+    crons=$(echo "$crons" | grep '[^[:blank:]]' | grep -v '^#' | tr '\t' ' ')
+    
+    # Save each line to an array called 'lines'
+    IFS=$'\r\n' GLOBIGNORE='*' command eval 'lines=($(echo "$crons"))'
+    
+    # Display each cron job
+    for i in "${!lines[@]}"
+    do
+        echo "$(( i + 1 )).  ${lines[$i]}"
+    done
+    #echo "$(($i + 2)).  All"
     echo
     
-    # Save each line to an element in an array called 'lines'
-    IFS=$'\r\n' GLOBIGNORE='*' command eval 'lines=($(echo "$crons"))'
-    # Display each line
-    #printf "%s\n" "${lines[@]}"
-    for i in "${lines[@]}"
-    do
-        # min hour dom month dow
-        min=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 1)
-        hour=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 2)
-        dom=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 3)
-        month=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 4)
-        dow=$(echo "$i" | tr '\t' ' ' | cut -d ' ' -f 5)
-    done  
+    # Prompt the user for which job to convert to a timer
+    while [[ "$job" -lt 1 || "$job" -gt ${#lines[@]} ]]; do
+        read -rp 'Select which cron job to convert to a timer: ' job
+    done
+    echo
+    
+    #for i in "${lines[@]}"; do    For ALL cron jobs
+    job=$(( job - 1 ))   # Because array elements start at 0
+    # min hour dom month dow
+    min=$(echo "${lines[$job]}" | cut -d ' ' -f 1)
+    hour=$(echo "${lines[$job]}" | cut -d ' ' -f 2)
+    dom=$(echo "${lines[$job]}" | cut -d ' ' -f 3)
+    month=$(echo "${lines[$job]}" | cut -d ' ' -f 4)
+    dow=$(echo "${lines[$job]}" | cut -d ' ' -f 5)
+    cmd=$(echo "${lines[$job]}" | cut -d ' ' -f 6-)
+    
+    echo
+    exit 0
 }
 
 # If no options are supplied, display usage & exit
@@ -480,5 +498,4 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   - Turn cron jobs into timers!
-#       Either convert all cron jobs or select ones
+#   - Allow user to convert all cron jobs into timers at once
