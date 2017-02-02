@@ -360,7 +360,11 @@ function start_timer {
     get_name "$1"
 
     # Try starting the timer
-    systemctl "$user" start "$name"
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user start "$name"
+    else
+        systemctl start "$name"
+    fi
     echo -e "$name has been started\n"
 
     exit 0
@@ -370,7 +374,11 @@ function stop_timer {
     get_name "$1"
 
     # Try stopping the timer
-    systemctl "$user" stop "$name"
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user stop "$name"
+    else
+        systemctl stop "$name"
+    fi
     echo -e "$name has been stopped\n"
 
     exit 0
