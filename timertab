@@ -192,6 +192,10 @@ function get_srvc_path {
     fi
 }
 
+function create_timer_file {
+    
+}
+
 function new_timer {
     get_name "$1"
 
@@ -317,7 +321,8 @@ function new_timer {
     if [[ -n "$WakeSystem" ]]; then echo "WakeSystem=$WakeSystem" >> "$timer_file"; fi
     if [[ -n "$RemainAfterElapse" ]]; then echo "RemainAfterElapse=$RemainAfterElapse" >> "$timer_file"; fi
 
-    # Add the Unit= option to the timer file if necessary
+    # The Unit= option is only used if the service being activated
+    # is not the same name as the timer
     if [[ "$srvc_prefix" != "$timer_prefix" ]]; then
         echo "Unit=$srvc_file" >> "$timer_file"
     fi
@@ -458,6 +463,19 @@ function convert {
     month=$(echo "${lines[$job]}" | cut -d ' ' -f 4)
     dow=$(echo "${lines[$job]}" | cut -d ' ' -f 5)
     cmd=$(echo "${lines[$job]}" | cut -d ' ' -f 6-)
+    
+    if [[ "$dow" == "*" ]]; then
+        dow=''
+    else
+        # Convert the integers used by Cron to the DOW abbreviations used in Timers (and add a space at the end)
+        dow="$(echo $dow | sed -e 's/0/Sun/g;s/1/Mon/g;s/2/Tue/g;s/3/Wed/g;s/4/Thu/g;s/5/Fri/g;s/6/Sat/g;s/-/../g') "
+    fi
+    
+    if [[ "$dom" == "*" && "$month" == "*" && "$dow" == "*" ]]; then
+        # This will be a monotonic timer
+    else
+        CalExpression="$dow*-$month-$dom $hour:$min:00"
+    fi
     
     echo
     exit 0
