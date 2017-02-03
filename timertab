@@ -272,11 +272,11 @@ function new_timer {
         echo '(simply enter "s" without quotes to display the syntax)'
         read -rp 'How long should the timer wait after boot before being activated? ' OnBootSec
 
-        if [[ "$OnBootSec" == "s" ]]; then
+        while [[ "$OnBootSec" == "s" ]]; do
             echo
             time_syntax
             read -rp 'How long should the timer wait after boot before being activated? ' OnBootSec
-        fi
+        done
         echo
         read -rp 'How frequently should the timer be activated after that? ' OnUnitActiveSec
         echo
@@ -301,9 +301,9 @@ function new_timer {
     PS3='Make a selection: '
     options=("AccuracySec=" "RandomizedDelaySec=" "Persistent=" "WakeSystem="
         "RemainAfterElapse=" "Display options help" "Done adding options")
-    select type in "${options[@]}"
+    select opts in "${options[@]}"
     do
-        case $type in
+        case $opts in
             "AccuracySec=") read -rp 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec; echo;;
             "RandomizedDelaySec=") read -rp 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec; echo;;
             "Persistent=") Persistent=true; echo -e 'Adding Persistent=true\n';;
@@ -366,12 +366,11 @@ function start_timer {
     get_name "$1"
 
     # Try starting the timer
-    #if [[ -n "$user" ]]; then # If the user option is set
-    #    systemctl --user start "$name"
-    #else
-    #    systemctl start "$name"
-    #fi
-    systemctl $user start "$name"
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user start "$name"
+    else
+        systemctl start "$name"
+    fi
     echo -e "$name has been started\n"
 
     exit 0
