@@ -185,6 +185,7 @@ function get_srvc_path {
         read -rp "Path to the service: (/etc/systemd/system/) " srvc_path
         if [[ "$srvc_path" == '' ]]; then
             srvc_path="/etc/systemd/system/"
+        # If the user didn't add a slash at the end, add it for them
         elif [[ "${srvc_path: -1}" != '/' ]]; then
             srvc_path="$srvc_path/"
         fi
@@ -196,7 +197,6 @@ function get_srvc_path {
 
 function new_timer {
     get_name "$1"
-
     get_path
 
     # Create the directory, if necessary
@@ -206,7 +206,7 @@ function new_timer {
     timer_file="$path$name"
 
     # Prompt the user to see if we need to set the Unit= option.
-    while [[ "$existing" != 'y' ]] && [[ "$existing" != 'n' ]]; do
+    while [[ "$existing" != 'y' && "$existing" != 'n' ]]; do
         read -rp "Will this timer control an existing service? (y/N) " existing
         existing="$(echo "$existing" | tr '[:upper:]' '[:lower:]')"
         if [[ "$existing" == '' ]]; then existing="n"; fi
@@ -216,23 +216,25 @@ function new_timer {
     # If yes, then gather more information
     if [[ $existing == 'y' ]]; then
         get_srvc_name
-
         get_srvc_path
         srvc_file="$srvc_path$srvc_name"
 
-        # If the service file doesn't exist...
-        while [[ ! -e "$srvc_file" ]]; do
-            echo "That service file does not exist in the default path ($path)"
-            read -rp "Would you like to specify a different path? (y/N) " ans
-            ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]')"
-            if [[ "$ans" == '' ]]; then ans="n"; fi
-            if [[ "$ans" == 'y' ]]; then get_srvc_name; else exit 1; fi
-        done
-
+        # If the service file doesn't exist, give the user a second chance
         if [[ ! -e "$srvc_file" ]]; then
-            echo "The service file does not exist ($srvc_file)"
-            exit 1
+            echo "That service file does not exist in the specified path ($srvc_path)"
+            read -rp "Would you like to provide a different name & path? (Y/n) " ans
+            ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]')"
+            if [[ "$ans" == '' || "$ans" == 'y' ]]; then
+                get_srvc_name
+                get_srvc_path
+                srvc_file="$srvc_path$srvc_name"
+            fi
+            if [[ ! -e "$srvc_file" ]]; then
+                echo "\nWell, the service file ($srvc_file) does not exist."
+                echo "Let's continue for now, but the timer will not work."
+            fi
         fi
+    
     # If no, then just set the appropriate variables
     elif [[ "$existing" == 'n' ]]; then
         srvc_prefix="$timer_prefix"
@@ -350,7 +352,11 @@ function enable_timer {
     get_name "$1"
 
     # Try enabling the timer
-    systemctl "$user" enable "$name"
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user enable "$name"
+    else
+        systemctl enable "$name"
+    fi
     echo -e "$name has been enabled\n"
 
     exit 0
@@ -360,11 +366,12 @@ function start_timer {
     get_name "$1"
 
     # Try starting the timer
-    if [[ -n "$user" ]]; then # If the user option is set
-        systemctl --user start "$name"
-    else
-        systemctl start "$name"
-    fi
+    #if [[ -n "$user" ]]; then # If the user option is set
+    #    systemctl --user start "$name"
+    #else
+    #    systemctl start "$name"
+    #fi
+    systemctl $user start "$name"
     echo -e "$name has been started\n"
 
     exit 0
@@ -386,15 +393,19 @@ function stop_timer {
 
 function disable_timer {
     get_name "$1"
-
     get_path
-
+    timer_file="$path$name"
+    
     # Check if the timer exists
-    if [[ ! -e "$path$name" ]]; then
-        echo -e "That timer ($path$name) does not exist\n"
+    if [[ ! -e "$timer_file" ]]; then
+        echo -e "That timer ($timer_file) does not exist\n"
         exit 1
     else # If so, then disable it
-        systemctl "$user" disable "$name"
+        if [[ -n "$user" ]]; then # If the user option is set
+            systemctl --user disable "$name"
+        else
+            systemctl disable "$name"
+        fi
         echo -e "$name has been disabled\n"
     fi
 
@@ -403,12 +414,12 @@ function disable_timer {
 
 function remove_timer {
     get_name "$1"
-
     get_path
+    timer_file="$path$name"
 
     # Prompt to remove associated service file
     while [[ $ans != 'y' ]] && [[ $ans != 'n' ]]; do
-        read -rp "Remove the associated service file of the same prefix? (y/N) " ans
+        read -rp "Remove the associated service file of the same name? (y/N) " ans
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [[ "$ans" == '' ]]; then ans="n"; fi
     done
@@ -417,7 +428,7 @@ function remove_timer {
         rm "$path$prefix.service"
     fi
 
-    rm "$path$name"
+    rm "$timer_file"
     echo -e "$name has been removed\n"
 
     exit 0
@@ -425,7 +436,6 @@ function remove_timer {
 
 function modify_timer {
     get_name "$1"
-
     get_path
 
     # Open the .timer file in the default editor specified by $EDITOR.
