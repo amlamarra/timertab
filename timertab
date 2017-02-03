@@ -488,8 +488,10 @@ function convert {
     
     #if [[ "$dom" == "*" && "$month" == "*" && "$dow" == "*" ]]; then
         # This will be a monotonic timer
+        # This can set the $type variable to "Monotonic"
     #else
-    #    CalExpression="$dow*-$month-$dom $hour:$min:00"
+        # This can set the $type variable to "Realtime"
+        #CalExpression="$dow*-$month-$dom $hour:$min:00"
     #fi
     
     echo
