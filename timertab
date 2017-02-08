@@ -9,8 +9,8 @@ set -e
 echo
 
 # Make sure systemd is installed
-command -v systemctl >/dev/null 2>&1 || { echo -e \
-"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+#command -v systemctl >/dev/null 2>&1 || { echo -e \
+#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 # If no options are supplied, display usage & exit
 if [[ $# == 0 ]]; then disp_usage; fi
@@ -227,7 +227,7 @@ function create_service_file {
 
     read -rp "<$srvc_name> Description: " Description
     read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
-    echo
+    
     echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
     echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
     echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
@@ -452,14 +452,17 @@ function remove_timer {
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [[ "$ans" == '' ]]; then ans="n"; fi
     done
+
+    rm "$timer_file"
+    echo "$name has been removed from $path"
+    
     if [[ "$ans" == "y" ]]; then
         prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
         rm "$path$prefix.service"
+        echo "$prefix.service has been removed from $path"
     fi
-
-    rm "$timer_file"
-    echo -e "$name has been removed\n"
-
+    
+    echo
     exit 0
 }
 
