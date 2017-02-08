@@ -1,11 +1,31 @@
 #!/usr/bin/env bash
-# An easy way to manage all of your systemd timers
+
+## Title:       timertab
+## Description: An easy way to manage all of your systemd timers
+## Author:      Andrew Lamarra
+## Created:     2/8/2017
+
 set -e
 echo
 
 # Make sure systemd is installed
-#command -v systemctl >/dev/null 2>&1 || { echo -e \
-#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+command -v systemctl >/dev/null 2>&1 || { echo -e \
+"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+
+# If no options are supplied, display usage & exit
+if [[ $# == 0 ]]; then disp_usage; fi
+
+# Make sure the user isn't using too many options
+if [[ ( "$1" != "-u" && "$1" != "--user" ) && $# -gt 2 ]]; then
+    echo -e "Only use one option at a time\n"
+    disp_usage
+elif [[ ( "$1" == "-u" || "$1" == "--user" ) && $# -gt 3 ]]; then
+    echo -e "Only use one option at a time (not including the user option)\n"
+    disp_usage
+fi
+
+# Set the path for when the --user option is specified
+USER_PATH="$HOME/.config/systemd/user/"
 
 function disp_usage {
     echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
@@ -125,7 +145,11 @@ function calendar_syntax {
 }
 
 function list_timers {
-    systemctl $user list-timers --all
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user list-timers --all
+    else
+        systemctl list-timers --all
+    fi
     echo
     exit 0
 }
@@ -195,16 +219,32 @@ function get_srvc_path {
 
 #function create_timer_file {
 
+function create_service_file {
+    # Creating the service file
+    # '\e[4;37m' = Underline White
+    # '\e[0m' = Text Reset
+    echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
+
+    read -rp "<$srvc_name> Description: " Description
+    read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
+    echo
+    echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
+    echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
+    echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
+
+    echo -e "\nThe following service file has been created: $srvc_file\n"
+}
+
 function new_timer {
     get_name "$1"
     get_path
-
+    
     # Create the directory, if necessary
     if [[ -n "$user" ]]; then mkdir -p $path; fi
-
+    
     echo -e "Let's create a new timer called \"$name\"\n"
     timer_file="$path$name"
-
+    
     # Prompt the user to see if we need to set the Unit= option.
     while [[ "$existing" != 'y' && "$existing" != 'n' ]]; do
         read -rp "Will this timer control an existing service? (y/N) " existing
@@ -218,7 +258,7 @@ function new_timer {
         get_srvc_name
         get_srvc_path
         srvc_file="$srvc_path$srvc_name"
-
+        
         # If the service file doesn't exist, give the user a second chance
         if [[ ! -e "$srvc_file" ]]; then
             echo "That service file does not exist in the specified path ($srvc_path)"
@@ -230,11 +270,11 @@ function new_timer {
                 srvc_file="$srvc_path$srvc_name"
             fi
             if [[ ! -e "$srvc_file" ]]; then
-                echo "\nWell, the service file ($srvc_file) does not exist."
+                echo -e "\nWell, the service file ($srvc_file) does not exist."
                 echo "Let's continue for now, but the timer will not work."
             fi
         fi
-    
+        
     # If no, then just set the appropriate variables
     elif [[ "$existing" == 'n' ]]; then
         srvc_prefix="$timer_prefix"
@@ -242,14 +282,14 @@ function new_timer {
         srvc_path="$path"
         srvc_file="$srvc_path$srvc_name"
     fi
-
+    
     # Creating the timer file & adding the description
     # '\e[4;37m' = Underline White
     # '\e[0m' = Text Reset
     echo -e "\n\e[4;37mLet's create the timer file\e[0m\n"
     read -rp "<$name> Description: " Description
     echo -e "[Unit]\nDescription=$Description\n\n[Timer]" > "$timer_file"
-
+    
     # What type of timer will this be?
     echo -e '\nRealtime timers will activate at a specific time or day.'
     echo 'Monotonic timers will activate at specific intervals.'
@@ -266,12 +306,12 @@ function new_timer {
         esac
     done
     echo
-
+    
     # Setting timer frequencies
     if [[ $type == "Monotonic" ]]; then
         echo '(simply enter "s" without quotes to display the syntax)'
         read -rp 'How long should the timer wait after boot before being activated? ' OnBootSec
-
+        
         while [[ "$OnBootSec" == "s" ]]; do
             echo
             time_syntax
@@ -280,13 +320,13 @@ function new_timer {
         echo
         read -rp 'How frequently should the timer be activated after that? ' OnUnitActiveSec
         echo
-
+        
         # Add this information to the timer file
         echo -e "OnBootSec=$OnBootSec\nOnUnitActiveSec=$OnUnitActiveSec" >> "$timer_file"
     elif [[ $type == "Realtime" ]]; then
         echo '(simply enter "s" without quotes to display the syntax)'
         read -rp 'Enter the calendar event expression: ' OnCalendar
-
+        
         if [[ "$OnCalendar" == "s" ]]; then
             echo
             calendar_syntax
@@ -314,37 +354,27 @@ function new_timer {
             *) echo -e "Invalid option\n";;
         esac
     done
-
+    
     if [[ -n "$AccuracySec" ]]; then echo "AccuracySec=$AccuracySec" >> "$timer_file"; fi
     if [[ -n "$RandomizedDelaySec" ]]; then echo "RandomizedDelaySec=$RandomizedDelaySec" >> "$timer_file"; fi
     if [[ -n "$Persistent" ]]; then echo "Persistent=$Persistent" >> "$timer_file"; fi
     if [[ -n "$WakeSystem" ]]; then echo "WakeSystem=$WakeSystem" >> "$timer_file"; fi
     if [[ -n "$RemainAfterElapse" ]]; then echo "RemainAfterElapse=$RemainAfterElapse" >> "$timer_file"; fi
-
+    
     # The Unit= option is only used if the service being activated
     # is not the same name as the timer
     if [[ "$srvc_prefix" != "$timer_prefix" ]]; then
         echo "Unit=$srvc_file" >> "$timer_file"
     fi
-
+    
     # Add the [Install] section
     echo -e '\n[Install]\nWantedBy=timers.target' >> "$timer_file"
     echo -e "\nThe following timer file has been created: $timer_file\n"
-
-    # Creating the service file
+    
     if [[ "$existing" == 'n' ]]; then
-        echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
-
-        read -rp "<$srvc_name> Description: " Description
-        read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
-        echo
-        echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
-        echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
-        echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
-
-        echo -e "\nThe following service file has been created: $srvc_file\n"
+        create_service_file
     fi
-
+    
     exit 0
 }
 
@@ -482,37 +512,17 @@ function convert {
     if [[ "$dow" == "*" ]]; then
         dow=''
     else
-        # Convert the integers used by Cron to the DOW abbreviations used in Timers (and add a space at the end)
+        # Convert the integers used by Cron to the DoW abbreviations used in Timers (and add a space at the end)
         dow="$(echo $dow | sed -e 's/0/Sun/g;s/1/Mon/g;s/2/Tue/g;s/3/Wed/g;s/4/Thu/g;s/5/Fri/g;s/6/Sat/g;s/-/../g') "
     fi
     
-    #if [[ "$dom" == "*" && "$month" == "*" && "$dow" == "*" ]]; then
-        # This will be a monotonic timer
-        # This can set the $type variable to "Monotonic"
-    #else
-        # This can set the $type variable to "Realtime"
-        #CalExpression="$dow*-$month-$dom $hour:$min:00"
-    #fi
+    CalExpression="$dow*-$month-$dom $hour:$min:00"
     
     echo
     exit 0
 }
 
-# If no options are supplied, display usage & exit
-if [[ $# == 0 ]]; then disp_usage; fi
-
-# Make sure the user isn't using too many options
-if [[ ( "$1" != "-u" && "$1" != "--user" ) && $# -gt 2 ]]; then
-    echo -e "Only use one option at a time\n"
-    disp_usage
-elif [[ ( "$1" == "-u" || "$1" == "--user" ) && $# -gt 3 ]]; then
-    echo -e "Only use one option at a time (not including the user option)\n"
-    disp_usage
-fi
-
-# Set the path for when the --user option is specified
-USER_PATH="$HOME/.config/systemd/user/"
-
+# Parsing the command & argument
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
