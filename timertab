@@ -456,7 +456,7 @@ function remove_timer {
     done
 
     rm "$timer_file"
-    echo "$name has been removed from $path"
+    echo -e "\n$name has been removed from $path"
     
     if [[ "$ans" == "y" ]]; then
         prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
