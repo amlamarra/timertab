@@ -20,3 +20,21 @@ COMMANDS:
   modify [NAME...]   Opens the .timer file for editing in vi
   convert            Convert a cron job into a Systemd timer
 ```
+
+## Usage examples
+
+List all of the user's timers:
+```
+$ ./timertab -u list
+```
+
+Create a user timer named "myscript":
+```
+$ ./timertab -u new myscript.timer
+```
+Note: The .timer extension is optional
+
+Enable a timer:
+```
+$ sudo ./timertab enable mytimer
+```
