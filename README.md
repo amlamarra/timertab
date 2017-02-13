@@ -25,7 +25,7 @@ COMMANDS:
 
 List all of the user's timers:
 
-  $ ./timertab -u list
+    $ ./timertab -u list
 
 Create a user timer named "myscript":
 ```
@@ -34,6 +34,5 @@ $ ./timertab -u new myscript.timer
 Note: The .timer extension is optional
 
 Enable a timer:
-```
-$ sudo ./timertab enable mytimer
-```
+
+`$ sudo ./timertab enable mytimer`
