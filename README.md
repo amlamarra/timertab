@@ -24,6 +24,7 @@ COMMANDS:
 ## Usage examples
 
 List all of the user's timers:
+
   $ ./timertab -u list
 
 Create a user timer named "myscript":
