@@ -12,6 +12,12 @@ echo
 command -v systemctl >/dev/null 2>&1 || { echo -e \
 "I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
+function disp_usage {
+    echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
+    echo -e "For more help:  $0 help\n"
+    exit 1
+}
+
 # If no options are supplied, display usage & exit
 if [[ $# == 0 ]]; then disp_usage; fi
 
@@ -26,12 +32,6 @@ fi
 
 # Set the path for when the --user option is specified
 USER_PATH="$HOME/.config/systemd/user/"
-
-function disp_usage {
-    echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
-    echo -e "For more help:  $0 help\n"
-    exit 1
-}
 
 function disp_help {
     echo "Usage: $0 [-u|--user] COMMAND [ARGUMENT...]"
