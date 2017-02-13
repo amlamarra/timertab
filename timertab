@@ -561,7 +561,7 @@ while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
         -u|--user ) user='--user';;
-        help ) disp_help;;
+        -h|--help|help ) disp_help;;
         list ) list_timers;;
         new ) new_timer "$2"; shift;;
         enable ) enable_timer "$2"; shift;;

@@ -21,18 +21,16 @@ COMMANDS:
   convert            Convert a cron job into a Systemd timer
 ```
 
-## Usage examples
+### Usage examples
 
-List all of the user's timers:
+1. List all of the user's timers:
+   `$ ./timertab -u list`
 
-    $ ./timertab -u list
+2. Create a user timer named "myscript":
+   `$ ./timertab -u new myscript.timer`  (Note: The .timer extension is optional)
 
-Create a user timer named "myscript":
-```
-$ ./timertab -u new myscript.timer
-```
-Note: The .timer extension is optional
+3. Enable a timer:
+   `$ sudo ./timertab enable mytimer`
 
-Enable a timer:
-
-`$ sudo ./timertab enable mytimer`
+4. Deleting a timer file:
+   `$ sudo ./timertab remove mytimer`
