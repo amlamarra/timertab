@@ -10,7 +10,7 @@ echo
 
 # Make sure systemd is installed
 command -v systemctl >/dev/null 2>&1 || { echo -e \
-"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+"I require Systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
     echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
@@ -578,3 +578,10 @@ done
 
 # Features to implement:
 #   - Allow user to convert all cron jobs into timers at once
+#   - Convert function can prompt user if they'd like to create a detailed timer
+#     (prompting for things like the name instead of assuming it)
+
+# Known issues:
+#   - Unable to convert user cron jobs to root level timers
+#     Workaround:
+#     Do the conversion with --user, and move the files to /etc/systemd/system/
