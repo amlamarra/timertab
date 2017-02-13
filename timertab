@@ -220,14 +220,6 @@ function get_srvc_path {
 #function create_timer_file {
 
 function create_service_file {
-    # Creating the service file
-    # '\e[4;37m' = Underline White
-    # '\e[0m' = Text Reset
-    echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
-
-    read -rp "<$srvc_name> Description: " Description
-    read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
-    
     echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
     echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
     echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
@@ -376,6 +368,14 @@ function new_timer {
     echo -e "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
     
     if [[ "$existing" == 'n' ]]; then
+        # Creating the service file
+        # '\e[4;37m' = Underline White
+        # '\e[0m' = Text Reset
+        echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
+    
+        read -rp "<$srvc_name> Description: " Description
+        read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
+        
         create_service_file
     fi
     
@@ -514,7 +514,7 @@ function convert {
     dom=$(echo "${lines[$job]}" | cut -d ' ' -f 3)
     month=$(echo "${lines[$job]}" | cut -d ' ' -f 4)
     dow=$(echo "${lines[$job]}" | cut -d ' ' -f 5)
-    cmd=$(echo "${lines[$job]}" | cut -d ' ' -f 6-)
+    ExecStart=$(echo "${lines[$job]}" | cut -d ' ' -f 6-)
     
     if [[ "$dow" == "*" ]]; then
         dow=''
@@ -524,6 +524,30 @@ function convert {
     fi
     
     CalExpression="$dow*-$month-$dom $hour:$min:00"
+    
+    # extract the name of the command to use as the name of the timer
+    timer_prefix=$(echo "$ExecStart" | cut -d ' ' -f 1 | rev | cut -d '/' -f 1 | rev)
+    name="$timer_prefix.timer"
+    
+    # Set the path variable
+    if [[ -n "$user" ]]; then # If the user option is set
+        path=$USER_PATH
+    else
+        path="/etc/systemd/system/"
+    fi
+    timer_file="$path$name"
+    Description='This timer file has been automatically generated from a cron job using the timertab program'
+    
+    # Creating the timer file
+    echo -e "[Unit]\nDescription=$Description\n" > "$timer_file"
+    echo -e "[Timer]\nOnCalendar=$OnCalendar\n" >> "$timer_file"
+    echo -e "[Install]\nWantedBy=timers.target" >> "$timer_file"
+    echo -e "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
+    
+    # Setting some variables & creating the service file
+    srvc_file="$path$timer_prefix.service"
+    Description='This service file has been automatically generated from a cron job using the timertab program'
+    create_service_file
     
     echo
     exit 0
