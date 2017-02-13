@@ -9,8 +9,8 @@ set -e
 echo
 
 # Make sure systemd is installed
-#command -v systemctl >/dev/null 2>&1 || { echo -e \
-#"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+command -v systemctl >/dev/null 2>&1 || { echo -e \
+"I require systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 # If no options are supplied, display usage & exit
 if [[ $# == 0 ]]; then disp_usage; fi
@@ -216,8 +216,6 @@ function get_srvc_path {
         echo
     fi
 }
-
-#function create_timer_file {
 
 function create_service_file {
     echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
@@ -523,7 +521,13 @@ function convert {
         dow="$(echo $dow | sed -e 's/0/Sun/g;s/1/Mon/g;s/2/Tue/g;s/3/Wed/g;s/4/Thu/g;s/5/Fri/g;s/6/Sat/g;s/-/../g') "
     fi
     
-    CalExpression="$dow*-$month-$dom $hour:$min:00"
+    # If a single digit was used, add a zero before it
+    if [[ "${#min}" -eq 1 && "$min" != "*" ]]; then min="0$min"; fi
+    if [[ "${#hour}" -eq 1 && "$hour" != "*" ]]; then hour="0$hour"; fi
+    if [[ "${#dom}" -eq 1 && "$dom" != "*" ]]; then dom="0$dom"; fi
+    if [[ "${#month}" -eq 1 && "$month" != "*" ]]; then month="0$month"; fi
+    
+    OnCalendar="$dow*-$month-$dom $hour:$min:00"
     
     # extract the name of the command to use as the name of the timer
     timer_prefix=$(echo "$ExecStart" | cut -d ' ' -f 1 | rev | cut -d '/' -f 1 | rev)
@@ -542,14 +546,13 @@ function convert {
     echo -e "[Unit]\nDescription=$Description\n" > "$timer_file"
     echo -e "[Timer]\nOnCalendar=$OnCalendar\n" >> "$timer_file"
     echo -e "[Install]\nWantedBy=timers.target" >> "$timer_file"
-    echo -e "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
+    echo -en "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file"
     
     # Setting some variables & creating the service file
     srvc_file="$path$timer_prefix.service"
     Description='This service file has been automatically generated from a cron job using the timertab program'
     create_service_file
     
-    echo
     exit 0
 }
 
