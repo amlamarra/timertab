@@ -232,7 +232,9 @@ function create_service_file {
     echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
     echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
 
-    echo -e "\nThe following service file has been created: $srvc_file\n"
+    # '\e[1;37m' = Bold White
+    # '\e[0m' = Text Reset
+    echo -e "\n\e[1;37mThe following service file has been created:\e[0m $srvc_file\n"
 }
 
 function new_timer {
@@ -368,8 +370,10 @@ function new_timer {
     fi
     
     # Add the [Install] section
+    # '\e[1;37m' = Bold White
+    # '\e[0m' = Text Reset
     echo -e '\n[Install]\nWantedBy=timers.target' >> "$timer_file"
-    echo -e "\nThe following timer file has been created: $timer_file\n"
+    echo -e "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
     
     if [[ "$existing" == 'n' ]]; then
         create_service_file
