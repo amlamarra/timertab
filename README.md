@@ -1,6 +1,6 @@
 # timertab
 
-An easy way to manage your Systemd Timers.
+An easy way to create, delete, and manage your Systemd Timers.
 
 ```
 Usage: ./timertab [-u|--user] COMMAND [ARGUMENT...]
@@ -34,3 +34,10 @@ COMMANDS:
 
 4. Deleting a timer file:
    `$ sudo ./timertab remove mytimer`
+
+### Known Issues
+
+- Unable to convert user cron jobs to root level timers
+
+  - Workaround:
+    Do the conversion with the `--user` option, and move the files to /etc/systemd/system/
