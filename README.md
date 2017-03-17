@@ -24,15 +24,19 @@ COMMANDS:
 ### Usage examples
 
 1. List all of the user's timers:
+
    `$ ./timertab -u list`
 
 2. Create a user timer named "myscript":
+
    `$ ./timertab -u new myscript.timer`  (Note: The .timer extension is optional)
 
 3. Enable a timer:
+
    `$ sudo ./timertab enable mytimer`
 
 4. Deleting a timer file:
+
    `$ sudo ./timertab remove mytimer`
 
 ### Known Issues
@@ -40,4 +44,5 @@ COMMANDS:
 - Unable to convert user cron jobs to root level timers
 
   - Workaround:
+  
     Do the conversion with the `--user` option, and move the files to /etc/systemd/system/
