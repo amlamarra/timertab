@@ -39,7 +39,7 @@ COMMANDS:
 
    `$ sudo ./timertab remove mytimer`
 
-### Known Issues
+#### Known Issues
 
 - Unable to convert user cron jobs to root level timers
 
