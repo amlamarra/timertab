@@ -1,15 +1,15 @@
-# Maintainer: amlamarra <amlamarra AT archlinux DOT us>
+# Maintainer: Andrew Lamarra <andrew DOT lamarra AT gmail DOT com>
 pkgname=timertab
 pkgver=1.0
 pkgrel=1
 pkgdesc="An easy way to manage your Systemd Timers."
 arch=('any')
 url="https://github.com/amlamarra/timertab"
+license=('GPL')
 depends=('bash' 'systemd')
-#makedepends=('git')
-source=("https://raw.githubusercontent.com/amlamarra/timertab/master/$pkgname")
-sha256sums=('bb29fec17f016bbba92902f510b425bcb01e9e6ef55108a8959cef5692371c43')
+source=("timertab")
+sha256sums=('b3009daa73d1d21fb8a42f2335dcc1f0ec106f86461c6915f8fe4ba563f7f90a')
 
 package () {
-	install -Dm755 -t "$pkgdir/usr/bin" "$srcdir/$pkgname"
+	install -Dm755 "$srcdir/$pkgname" "$pkgdir/usr/bin/$pkgname"
 }
