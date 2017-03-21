@@ -7,8 +7,8 @@ arch=('any')
 url="https://github.com/amlamarra/timertab"
 license=('GPL')
 depends=('systemd')
-source=("timertab")
-sha256sums=('b3009daa73d1d21fb8a42f2335dcc1f0ec106f86461c6915f8fe4ba563f7f90a')
+source=("https://github.com/amlamarra/$pkgname/archive/v$pkgver.tar.gz")
+sha256sums=('6c62723abeda776624c02ee22c1d986be51ac27642ca34831729eb58955fe407')
 
 package () {
 	install -Dm755 "$srcdir/$pkgname" "$pkgdir/usr/bin/$pkgname"
