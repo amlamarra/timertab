@@ -23,142 +23,164 @@
 set -e
 echo
 
+# Text printing functions
+function info_n {
+    printf '%s\n' "$@"
+}
+function info_en {
+    printf '%b\n' "$@"
+}
+function info_e {
+    printf '%b' "$@"
+}
+function info {
+    printf '%s' "$@"
+}
+
 # Make sure systemd is installed
 command -v systemctl >/dev/null 2>&1 || { echo -e \
 "I require Systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
-    echo -e "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
-    echo -e "For more help:  $0 help\n"
+    info_n "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
+    info_en "For more help:  $0 help\n"
     exit 1
 }
 
 # If no commands are supplied, display usage & exit
 if [[ $# -eq 0 ]] || [[ $# -eq 1 && ("$1" == "-u" || "$1" == "--user") ]]; then
-    disp_usage
+    disp_usage >&2
 fi
 
 # Make sure the user isn't using too many commands
 if [[ ( "$1" != "-u" && "$1" != "--user" ) && $# -gt 2 ]]; then
     echo -e "Only use one option at a time\n"
-    disp_usage
+    disp_usage >&2
 elif [[ ( "$1" == "-u" || "$1" == "--user" ) && $# -gt 3 ]]; then
     echo -e "Only use one option at a time (not including the user option)\n"
-    disp_usage
+    disp_usage >&2
 fi
 
 # Set the path for when the --user option is specified
 USER_PATH="$HOME/.config/systemd/user/"
 
 function disp_help {
-    echo "Usage: $0 [-u|--user] COMMAND [ARGUMENT...]"
-    echo 'Manage your Systemd Timers'
-    echo 'Only use one command at a time'
-    echo
-    echo '  -u, --user         Deal only with user timers (not run as root)'
-    echo
-    echo 'COMMANDS:'
-    echo '  help               Display this help dialog'
-    echo '  list               List the current timers'
-    echo '  new [NAME...]      Create a new timer'
-    echo '  enable [NAME...]   Enable timer'
-    echo '  start [NAME...]    Start timer'
-    echo '  stop [NAME...]     Stop timer'
-    echo '  disable [NAME...]  Disable timer'
-    echo '  remove [NAME...]   Remove (delete) timer and/or associated service files'
-    echo '  modify [NAME...]   Opens the .timer file for editing in vi'
-    echo '  convert            Convert a cron job into a Systemd timer'
-    echo
+cat << EOF
+Usage: $0 [-u|--user] COMMAND [ARGUMENT...]
+Manage your Systemd Timers
+Only use one command at a time
+
+  -u, --user         Deal only with user timers (not run as root)
+
+COMMANDS:
+  help               Display this help dialog
+  list               List the current timers
+  new [NAME...]      Create a new timer
+  enable [NAME...]   Enable timer
+  start [NAME...]    Start timer
+  stop [NAME...]     Stop timer
+  disable [NAME...]  Disable timer
+  remove [NAME...]   Remove (delete) timer and/or associated service files
+  modify [NAME...]   Opens the .timer file for editing in vi
+  convert            Convert a cron job into a Systemd timer
+
+EOF
     exit 0
 }
 
 function timer_options {
-    echo 'AccuracySec='
-    echo '    Specify the accuracy the timer shall elapse with. Defaults to 1min.'
+cat << EOF
+AccuracySec=
+    Specify the accuracy the timer shall elapse with. Defaults to 1min.
     echo
-    echo 'RandomizedDelaySec='
-    echo '    Delay the timer by a randomly selected, evenly distributed amount of time'
-    echo '    between 0 and the specified time value. Defaults to 0, indicating that no'
-    echo '    randomized delay shall be applied.'
+RandomizedDelaySec=
+    Delay the timer by a randomly selected, evenly distributed amount of time
+    between 0 and the specified time value. Defaults to 0, indicating that no
+    randomized delay shall be applied.
     echo
-    echo 'Persistent=(true|false)'
-    echo '    If true, the time when the service was last triggered is stored on disk.'
-    echo '    The service unit is triggered immediately if the next run is missed.'
-    echo '    This is useful to catch up on missed runs of the service when the machine'
-    echo '    was off. Only use with OnCalendar= (realtime timers). Defaults to false.'
+Persistent=(true|false)
+    If true, the time when the service was last triggered is stored on disk.
+    The service unit is triggered immediately if the next run is missed.
+    This is useful to catch up on missed runs of the service when the machine
+    was off. Only use with OnCalendar= (realtime timers). Defaults to false.
     echo
-    echo 'WakeSystem=(true|false)'
-    echo '    If true, an elapsing timer will cause the system to resume from suspend,'
-    echo '    should it be suspended and if the system supports this. Defaults to false.'
+WakeSystem=(true|false)
+    If true, an elapsing timer will cause the system to resume from suspend,
+    should it be suspended and if the system supports this. Defaults to false.
     echo
-    echo 'RemainAfterElapse=(true|false)'
-    echo '    If true, an elapsed timer will stay loaded, and its state remains queriable.'
-    echo '    If false, an elapsed timer unit that cannot elapse anymore is unloaded.'
-    echo '    Turning this off is particularly useful for transient timer units that shall'
-    echo '    disappear after they first elapse. Defaults to true.'
-    echo
+RemainAfterElapse=(true|false)
+    If true, an elapsed timer will stay loaded, and its state remains queriable.
+    If false, an elapsed timer unit that cannot elapse anymore is unloaded.
+    Turning this off is particularly useful for transient timer units that shall
+    disappear after they first elapse. Defaults to true.
+
+EOF
 }
 
 function time_syntax {
-    echo 'VALUE [UNIT]'
-    echo '    If no time unit is specified, seconds are assumed.'
-    echo
-    echo 'Possible units:'
-    echo '    usec, us'
-    echo '    msec, ms'
-    echo '    seconds, second, sec, s'
-    echo '    minutes, minute, min, m'
-    echo '    hours, hour, hr, h'
-    echo '    days, day, d'
-    echo '    weeks, week, w'
-    echo '    months, month, M (defined as 30.44 days)'
-    echo '    years, year, y (defined as 365.25 days)'
-    echo 'Examples:'
-    echo '    2 h'
-    echo '    2hours'
-    echo '    48hr'
-    echo '    1y 12month'
-    echo '    55s500ms'
-    echo '    300ms20s 5day'
-    echo
+cat << EOF
+VALUE [UNIT]
+    If no time unit is specified, seconds are assumed.
+
+Possible units:
+    usec, us
+    msec, ms
+    seconds, second, sec, s
+    minutes, minute, min, m
+    hours, hour, hr, h
+    days, day, d
+    weeks, week, w
+    months, month, M (defined as 30.44 days)
+    years, year, y (defined as 365.25 days)
+Examples:
+    2 h
+    2hours
+    48hr
+    1y 12month
+    55s500ms
+    300ms20s 5day
+
+EOF
 }
 
 function calendar_syntax {
-    echo 'Examples for valid timestamps and their normalized form:'
-    echo
-    echo '  Sat,Thu,Mon..Wed,Sat..Sun → Mon..Thu,Sat,Sun *-*-* 00:00:00'
-    echo '      Mon,Sun 12-*-* 2,1:23 → Mon,Sun 2012-*-* 01,02:23:00'
-    echo '                    Wed *-1 → Wed *-*-01 00:00:00'
-    echo '           Wed..Wed,Wed *-1 → Wed *-*-01 00:00:00'
-    echo '                 Wed, 17:48 → Wed *-*-* 17:48:00'
-    echo 'Wed..Sat,Tue 12-10-15 1:2:3 → Tue..Sat 2012-10-15 01:02:03'
-    echo '                *-*-7 0:0:0 → *-*-07 00:00:00'
-    echo '                      10-15 → *-10-15 00:00:00'
-    echo '        monday *-12-* 17:00 → Mon *-12-* 17:00:00'
-    echo '  Mon,Fri *-*-3,1,2 *:30:45 → Mon,Fri *-*-01,02,03 *:30:45'
-    echo '       12,14,13,12:20,10,30 → *-*-* 12,13,14:10,20,30:00'
-    echo '            12..14:10,20,30 → *-*-* 12,13,14:10,20,30:00'
-    echo '  mon,fri *-1/2-1,3 *:30:45 → Mon,Fri *-01/2-01,03 *:30:45'
-    echo '             03-05 08:05:40 → *-03-05 08:05:40'
-    echo '                   08:05:40 → *-*-* 08:05:40'
-    echo '                      05:40 → *-*-* 05:40:00'
-    echo '     Sat,Sun 12-05 08:05:40 → Sat,Sun *-12-05 08:05:40'
-    echo '           Sat,Sun 08:05:40 → Sat,Sun *-*-* 08:05:40'
-    echo '           2003-03-05 05:40 → 2003-03-05 05:40:00'
-    echo ' 05:40:23.4200004/3.1700005 → 05:40:23.420000/3.170001'
-    echo '             2003-02..04-05 → 2003-02,03,04-05 00:00:00'
-    echo '       2003-03-05 05:40 UTC → 2003-03-05 05:40:00 UTC'
-    echo '                 2003-03-05 → 2003-03-05 00:00:00'
-    echo '                      03-05 → *-03-05 00:00:00'
-    echo '                     hourly → *-*-* *:00:00'
-    echo '                      daily → *-*-* 00:00:00'
-    echo '                  daily UTC → *-*-* 00:00:00 UTC'
-    echo '                    monthly → *-*-01 00:00:00'
-    echo '                     weekly → Mon *-*-* 00:00:00'
-    echo '                     yearly → *-01-01 00:00:00'
-    echo '                   annually → *-01-01 00:00:00'
-    echo '                      *:2/3 → *-*-* *:02/3:00'
-    echo
+cat << EOF
+Examples for valid timestamps and their normalized form:
+
+  Sat,Thu,Mon..Wed,Sat..Sun → Mon..Thu,Sat,Sun *-*-* 00:00:00
+      Mon,Sun 12-*-* 2,1:23 → Mon,Sun 2012-*-* 01,02:23:00
+                    Wed *-1 → Wed *-*-01 00:00:00
+           Wed..Wed,Wed *-1 → Wed *-*-01 00:00:00
+                 Wed, 17:48 → Wed *-*-* 17:48:00
+Wed..Sat,Tue 12-10-15 1:2:3 → Tue..Sat 2012-10-15 01:02:03
+                *-*-7 0:0:0 → *-*-07 00:00:00
+                      10-15 → *-10-15 00:00:00
+        monday *-12-* 17:00 → Mon *-12-* 17:00:00
+  Mon,Fri *-*-3,1,2 *:30:45 → Mon,Fri *-*-01,02,03 *:30:45
+       12,14,13,12:20,10,30 → *-*-* 12,13,14:10,20,30:00
+            12..14:10,20,30 → *-*-* 12,13,14:10,20,30:00
+  mon,fri *-1/2-1,3 *:30:45 → Mon,Fri *-01/2-01,03 *:30:45
+             03-05 08:05:40 → *-03-05 08:05:40
+                   08:05:40 → *-*-* 08:05:40
+                      05:40 → *-*-* 05:40:00
+     Sat,Sun 12-05 08:05:40 → Sat,Sun *-12-05 08:05:40
+           Sat,Sun 08:05:40 → Sat,Sun *-*-* 08:05:40
+           2003-03-05 05:40 → 2003-03-05 05:40:00
+ 05:40:23.4200004/3.1700005 → 05:40:23.420000/3.170001
+             2003-02..04-05 → 2003-02,03,04-05 00:00:00
+       2003-03-05 05:40 UTC → 2003-03-05 05:40:00 UTC
+                 2003-03-05 → 2003-03-05 00:00:00
+                      03-05 → *-03-05 00:00:00
+                     hourly → *-*-* *:00:00
+                      daily → *-*-* 00:00:00
+                  daily UTC → *-*-* 00:00:00 UTC
+                    monthly → *-*-01 00:00:00
+                     weekly → Mon *-*-* 00:00:00
+                     yearly → *-01-01 00:00:00
+                   annually → *-01-01 00:00:00
+                      *:2/3 → *-*-* *:02/3:00
+
+EOF
 }
 
 function list_timers {
@@ -184,7 +206,7 @@ function get_name {
         timer_prefix="$name"
         name="$name.timer"
     else
-        timer_prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev)
+        timer_prefix="$(echo "$name" | rev | cut -d '.' -f 2- | rev)"
     fi
 }
 
@@ -198,7 +220,7 @@ function get_srvc_name {
         srvc_prefix="$srvc_name"
         srvc_name="$srvc_name.service"
     else
-        srvc_prefix=$(echo "$srvc_name" | rev | cut -d '.' -f 2- | rev)
+        srvc_prefix="$(echo "$srvc_name" | rev | cut -d '.' -f 2- | rev)"
     fi
 }
 
@@ -588,7 +610,7 @@ while [[ $# -gt 0 ]]; do
         remove ) remove_timer "$2"; shift;;
         modify ) modify_timer "$2"; shift;;
         convert ) convert "$2"; shift;;
-        * ) disp_usage;;
+        * ) disp_usage >&2;;
     esac
     shift
 done
