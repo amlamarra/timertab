@@ -23,42 +23,33 @@
 set -e
 echo
 
-# Text printing functions
-function info_n {
-    printf '%s\n' "$@"
-}
-function info_en {
+# Text printing function
+function info {  # Equivalent to echo -e
     printf '%b\n' "$@"
-}
-function info_e {
-    printf '%b' "$@"
-}
-function info {
-    printf '%s' "$@"
 }
 
 # Make sure systemd is installed
-command -v systemctl >/dev/null 2>&1 || { echo -e \
+command -v systemctl >/dev/null 2>&1 || { info \
 "I require Systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
-    info_n "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]"
-    info_en "For more help:  $0 help\n"
+    info "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]" >&2
+    info "For more help:  $0 help\n" >&2
     exit 1
 }
 
 # If no commands are supplied, display usage & exit
 if [[ $# -eq 0 ]] || [[ $# -eq 1 && ("$1" == "-u" || "$1" == "--user") ]]; then
-    disp_usage >&2
+    disp_usage
 fi
 
 # Make sure the user isn't using too many commands
 if [[ ( "$1" != "-u" && "$1" != "--user" ) && $# -gt 2 ]]; then
-    echo -e "Only use one option at a time\n"
-    disp_usage >&2
+    info "Only use one option at a time\n"
+    disp_usage
 elif [[ ( "$1" == "-u" || "$1" == "--user" ) && $# -gt 3 ]]; then
-    echo -e "Only use one option at a time (not including the user option)\n"
-    disp_usage >&2
+    info "Only use one option at a time (not including the user option)\n"
+    disp_usage
 fi
 
 # Set the path for when the --user option is specified
@@ -257,13 +248,13 @@ function get_srvc_path {
 }
 
 function create_service_file {
-    echo -e "[Unit]\nDescription=$Description\n" > "$srvc_file"
-    echo -e "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
-    echo -e "[Install]\nWantedBy=default.target" >> "$srvc_file"
+    info "[Unit]\nDescription=$Description\n" > "$srvc_file"
+    info "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
+    info "[Install]\nWantedBy=default.target" >> "$srvc_file"
 
     # '\e[1;37m' = Bold White
     # '\e[0m' = Text Reset
-    echo -e "\n\e[1;37mThe following service file has been created:\e[0m $srvc_file\n"
+    info "\e[1;37mThe following service file has been created:\e[0m $srvc_file\n"
 }
 
 function new_timer {
@@ -273,7 +264,7 @@ function new_timer {
     # Create the directory, if necessary
     if [[ -n "$user" ]]; then mkdir -p $path; fi
 
-    echo -e "Let's create a new timer called \"$name\"\n"
+    info "Let's create a new timer called \"$name\"\n"
     timer_file="$path$name"
 
     # Prompt the user to see if we need to set the Unit= option.
@@ -301,7 +292,7 @@ function new_timer {
                 srvc_file="$srvc_path$srvc_name"
             fi
             if [[ ! -e "$srvc_file" ]]; then
-                echo -e "\nWell, the service file ($srvc_file) does not exist."
+                info "\nWell, the service file ($srvc_file) does not exist."
                 echo "Let's continue for now, but the timer will not work."
             fi
         fi
@@ -317,12 +308,12 @@ function new_timer {
     # Creating the timer file & adding the description
     # '\e[4;37m' = Underline White
     # '\e[0m' = Text Reset
-    echo -e "\n\e[4;37mLet's create the timer file\e[0m\n"
+    info "\n\e[4;37mLet's create the timer file\e[0m\n"
     read -rp "<$name> Description: " Description
-    echo -e "[Unit]\nDescription=$Description\n\n[Timer]" > "$timer_file"
+    info "[Unit]\nDescription=$Description\n\n[Timer]" > "$timer_file"
 
     # What type of timer will this be?
-    echo -e '\nRealtime timers will activate at a specific time or day.'
+    info '\nRealtime timers will activate at a specific time or day.'
     echo 'Monotonic timers will activate at specific intervals.'
     echo
     echo 'Create a realtime or monotonic timer?'
@@ -353,7 +344,7 @@ function new_timer {
         echo
 
         # Add this information to the timer file
-        echo -e "OnBootSec=$OnBootSec\nOnUnitActiveSec=$OnUnitActiveSec" >> "$timer_file"
+        info "OnBootSec=$OnBootSec\nOnUnitActiveSec=$OnUnitActiveSec" >> "$timer_file"
     elif [[ $type == "Realtime" ]]; then
         echo '(simply enter "s" without quotes to display the syntax)'
         read -rp 'Enter the calendar event expression: ' OnCalendar
@@ -363,7 +354,7 @@ function new_timer {
             calendar_syntax
             read -rp 'Enter the calendar event expression: ' OnCalendar
         fi
-        echo -e "OnCalendar=$OnCalendar" >> "$timer_file"
+        info "OnCalendar=$OnCalendar" >> "$timer_file"
         echo
     fi
 
@@ -377,12 +368,12 @@ function new_timer {
         case $opts in
             "AccuracySec=") read -rp 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec; echo;;
             "RandomizedDelaySec=") read -rp 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec; echo;;
-            "Persistent=") Persistent=true; echo -e 'Adding Persistent=true\n';;
-            "WakeSystem=") WakeSystem=true; echo -e 'Adding WakeSystem=true\n';;
-            "RemainAfterElapse=") RemainAfterElapse=false; echo -e 'Adding RemainAfterElapse=false\n';;
+            "Persistent=") Persistent=true; info 'Adding Persistent=true\n';;
+            "WakeSystem=") WakeSystem=true; info 'Adding WakeSystem=true\n';;
+            "RemainAfterElapse=") RemainAfterElapse=false; info 'Adding RemainAfterElapse=false\n';;
             "Display options help") echo; timer_options;;
             "Done adding options") break;;
-            *) echo -e "Invalid option\n";;
+            *) info "Invalid option\n";;
         esac
     done
 
@@ -401,17 +392,17 @@ function new_timer {
     # Add the [Install] section
     # '\e[1;37m' = Bold White
     # '\e[0m' = Text Reset
-    echo -e '\n[Install]\nWantedBy=timers.target' >> "$timer_file"
-    echo -e "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
+    info '\n[Install]\nWantedBy=timers.target' >> "$timer_file"
+    info "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file\n"
 
     if [[ "$existing" == 'n' ]]; then
         # Creating the service file
         # '\e[4;37m' = Underline White
         # '\e[0m' = Text Reset
-        echo -e "\n\e[4;37mLet's create the service file\e[0m\n"
-
+        info "\n\e[4;37mLet's create the service file\e[0m\n"
         read -rp "<$srvc_name> Description: " Description
         read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
+        echo
 
         create_service_file
     fi
@@ -428,7 +419,7 @@ function enable_timer {
     else
         systemctl enable "$name"
     fi
-    echo -e "$name has been enabled\n"
+    info "$name has been enabled\n"
 
     exit 0
 }
@@ -442,7 +433,7 @@ function start_timer {
     else
         systemctl start "$name"
     fi
-    echo -e "$name has been started\n"
+    info "$name has been started\n"
 
     exit 0
 }
@@ -456,7 +447,7 @@ function stop_timer {
     else
         systemctl stop "$name"
     fi
-    echo -e "$name has been stopped\n"
+    info "$name has been stopped\n"
 
     exit 0
 }
@@ -468,7 +459,7 @@ function disable_timer {
 
     # Check if the timer exists
     if [[ ! -e "$timer_file" ]]; then
-        echo -e "That timer ($timer_file) does not exist\n"
+        info "That timer ($timer_file) does not exist\n" >&2
         exit 1
     else # If so, then disable it
         if [[ -n "$user" ]]; then # If the user option is set
@@ -476,7 +467,7 @@ function disable_timer {
         else
             systemctl disable "$name"
         fi
-        echo -e "$name has been disabled\n"
+        info "$name has been disabled\n"
     fi
 
     exit 0
@@ -495,7 +486,7 @@ function remove_timer {
     done
 
     rm "$timer_file"
-    echo -e "\n$name has been removed from $path"
+    info "\n$name has been removed from $path"
 
     if [[ "$ans" == "y" ]]; then
         prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
@@ -525,6 +516,12 @@ function convert {
 
     # Strip the crontab file to just the list of cron jobs
     crons=$(echo "$crons" | grep '[^[:blank:]]' | grep -v '^#' | tr '\t' ' ')
+
+    # If no cron jobs are enabled, then exit
+    if [[ -z "$crons" ]]; then
+        echo "no cron jobs are enabled for $USER" >&2
+        exit 1
+    fi
 
     # Save each line to an array called 'lines'
     IFS=$'\r\n' GLOBIGNORE='*' command eval 'lines=($(echo "$crons"))'
@@ -582,10 +579,10 @@ function convert {
     Description='This timer file has been automatically generated from a cron job using the timertab program'
 
     # Creating the timer file
-    echo -e "[Unit]\nDescription=$Description\n" > "$timer_file"
-    echo -e "[Timer]\nOnCalendar=$OnCalendar\n" >> "$timer_file"
-    echo -e "[Install]\nWantedBy=timers.target" >> "$timer_file"
-    echo -en "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file"
+    info "[Unit]\nDescription=$Description\n" > "$timer_file"
+    info "[Timer]\nOnCalendar=$OnCalendar\n" >> "$timer_file"
+    info "[Install]\nWantedBy=timers.target" >> "$timer_file"
+    info "\n\e[1;37mThe following timer file has been created:\e[0m $timer_file"
 
     # Setting some variables & creating the service file
     srvc_file="$path$timer_prefix.service"
@@ -610,12 +607,13 @@ while [[ $# -gt 0 ]]; do
         remove ) remove_timer "$2"; shift;;
         modify ) modify_timer "$2"; shift;;
         convert ) convert "$2"; shift;;
-        * ) disp_usage >&2;;
+        * ) disp_usage;;
     esac
     shift
 done
 
 # Features to implement:
+#   - Prompt the user to start/enable a newly created timer
 #   - Allow user to convert all cron jobs into timers at once
 #   - Convert function can prompt user if they'd like to create a detailed timer
 #     (prompting for things like the name instead of assuming it)
