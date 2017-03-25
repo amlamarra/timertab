@@ -249,12 +249,106 @@ function get_srvc_path {
 
 function create_service_file {
     info "[Unit]\nDescription=$Description\n" > "$srvc_file"
-    info "[Service]\nExecStart=$ExecStart\n" >> "$srvc_file"
-    info "[Install]\nWantedBy=default.target" >> "$srvc_file"
+    info "[Service]\nExecStart=$ExecStart" >> "$srvc_file"
 
     # '\e[1;37m' = Bold White
     # '\e[0m' = Text Reset
     info "\e[1;37mThe following service file has been created:\e[0m $srvc_file\n"
+}
+
+function enable_timer {
+    get_name "$1"
+
+    # Try enabling the timer
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user enable "$name"
+    else
+        systemctl enable "$name"
+    fi
+    info "$name has been enabled\n"
+}
+
+function start_timer {
+    get_name "$1"
+
+    # Try starting the timer
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user start "$name"
+    else
+        systemctl start "$name"
+    fi
+    info "$name has been started\n"
+}
+
+function stop_timer {
+    get_name "$1"
+
+    # Try stopping the timer
+    if [[ -n "$user" ]]; then # If the user option is set
+        systemctl --user stop "$name"
+    else
+        systemctl stop "$name"
+    fi
+    info "$name has been stopped\n"
+
+    exit 0
+}
+
+function disable_timer {
+    get_name "$1"
+    get_path
+    timer_file="$path$name"
+
+    # Check if the timer exists
+    if [[ ! -e "$timer_file" ]]; then
+        info "That timer ($timer_file) does not exist\n" >&2
+        exit 1
+    else # If so, then disable it
+        if [[ -n "$user" ]]; then # If the user option is set
+            systemctl --user disable "$name"
+        else
+            systemctl disable "$name"
+        fi
+        info "$name has been disabled\n"
+    fi
+
+    exit 0
+}
+
+function remove_timer {
+    get_name "$1"
+    get_path
+    timer_file="$path$name"
+
+    # Prompt to remove associated service file
+    while [[ $ans != 'y' ]] && [[ $ans != 'n' ]]; do
+        read -rp "Remove the associated service file of the same name? (y/N) " ans
+        ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
+        if [[ "$ans" == '' ]]; then ans="n"; fi
+    done
+
+    rm "$timer_file"
+    info "\n$name has been removed from $path"
+
+    if [[ "$ans" == "y" ]]; then
+        prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
+        rm "$path$prefix.service"
+        echo "$prefix.service has been removed from $path"
+    fi
+
+    echo
+    exit 0
+}
+
+function modify_timer {
+    get_name "$1"
+    get_path
+
+    # Open the .timer file in the default editor specified by $EDITOR.
+    # If that variable is not set, open in vi
+    "${EDITOR:-vi}" "$path$name"
+
+    exit 0
 }
 
 function new_timer {
@@ -407,104 +501,14 @@ function new_timer {
         create_service_file
     fi
 
-    exit 0
-}
-
-function enable_timer {
-    get_name "$1"
-
-    # Try enabling the timer
-    if [[ -n "$user" ]]; then # If the user option is set
-        systemctl --user enable "$name"
-    else
-        systemctl enable "$name"
-    fi
-    info "$name has been enabled\n"
-
-    exit 0
-}
-
-function start_timer {
-    get_name "$1"
-
-    # Try starting the timer
-    if [[ -n "$user" ]]; then # If the user option is set
-        systemctl --user start "$name"
-    else
-        systemctl start "$name"
-    fi
-    info "$name has been started\n"
-
-    exit 0
-}
-
-function stop_timer {
-    get_name "$1"
-
-    # Try stopping the timer
-    if [[ -n "$user" ]]; then # If the user option is set
-        systemctl --user stop "$name"
-    else
-        systemctl stop "$name"
-    fi
-    info "$name has been stopped\n"
-
-    exit 0
-}
-
-function disable_timer {
-    get_name "$1"
-    get_path
-    timer_file="$path$name"
-
-    # Check if the timer exists
-    if [[ ! -e "$timer_file" ]]; then
-        info "That timer ($timer_file) does not exist\n" >&2
-        exit 1
-    else # If so, then disable it
-        if [[ -n "$user" ]]; then # If the user option is set
-            systemctl --user disable "$name"
-        else
-            systemctl disable "$name"
-        fi
-        info "$name has been disabled\n"
-    fi
-
-    exit 0
-}
-
-function remove_timer {
-    get_name "$1"
-    get_path
-    timer_file="$path$name"
-
-    # Prompt to remove associated service file
-    while [[ $ans != 'y' ]] && [[ $ans != 'n' ]]; do
-        read -rp "Remove the associated service file of the same name? (y/N) " ans
-        ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
-        if [[ "$ans" == '' ]]; then ans="n"; fi
-    done
-
-    rm "$timer_file"
-    info "\n$name has been removed from $path"
-
-    if [[ "$ans" == "y" ]]; then
-        prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
-        rm "$path$prefix.service"
-        echo "$prefix.service has been removed from $path"
-    fi
-
+    # Prompt the user to start/enable the timer
+    read -rp "Would you like to start the timer now and enable it to run on boot? (y/N) " ans
     echo
-    exit 0
-}
-
-function modify_timer {
-    get_name "$1"
-    get_path
-
-    # Open the .timer file in the default editor specified by $EDITOR.
-    # If that variable is not set, open in vi
-    "${EDITOR:-vi}" "$path$name"
+    ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$ans" == 'y' ]]; then
+        enable_timer $name
+        start_timer $name
+    fi
 
     exit 0
 }
@@ -599,21 +603,22 @@ while [[ $# -gt 0 ]]; do
         -u|--user ) user='--user';;
         -h|--help|help ) disp_help;;
         list ) list_timers;;
-        new ) new_timer "$2"; shift;;
-        enable ) enable_timer "$2"; shift;;
-        start ) start_timer "$2"; shift;;
-        stop ) stop_timer "$2"; shift;;
-        disable ) disable_timer "$2"; shift;;
-        remove ) remove_timer "$2"; shift;;
-        modify ) modify_timer "$2"; shift;;
-        convert ) convert "$2"; shift;;
+        new ) new_timer "$2";;
+        enable ) enable_timer "$2"; exit 0;;
+        start ) start_timer "$2"; exit 0;;
+        stop ) stop_timer "$2";;
+        #status ) status_timer "$2";;
+        disable ) disable_timer "$2";;
+        remove ) remove_timer "$2";;
+        modify ) modify_timer "$2";;
+        convert ) convert "$2";;
         * ) disp_usage;;
     esac
     shift
 done
 
 # Features to implement:
-#   - Prompt the user to start/enable a newly created timer
+#   - Add the "status" argument
 #   - Allow user to convert all cron jobs into timers at once
 #   - Convert function can prompt user if they'd like to create a detailed timer
 #     (prompting for things like the name instead of assuming it)
