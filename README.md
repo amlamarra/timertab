@@ -15,6 +15,7 @@ COMMANDS:
   enable [NAME...]   Enable timer
   start [NAME...]    Start timer
   stop [NAME...]     Stop timer
+  status [NAME...]   Display the status of a specific timer
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
   modify [NAME...]   Opens the .timer file for editing in vi
@@ -38,6 +39,10 @@ COMMANDS:
 4. Deleting a timer file:
 
    `$ sudo ./timertab remove mytimer`
+
+5. Display the status of a timer:
+
+   `$ ./timertab status mytimer`
 
 #### Known Issues
 
