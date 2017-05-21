@@ -46,7 +46,7 @@ COMMANDS:
 
    `$ ./timertab status mytimer`
 
-6. Create a transient (temporary) timer.<br>These timer files are created in the /run/user/$UID/systemd/transient/ directory.<br>They are not "enabled" or "disabled" but will be deleted once they are stopped or there's a reboot.<br>If no name is provided, one will be automatically generated.
+6. Create a transient (temporary) timer.<br>These timer files are created in the /run/user/$UID/systemd/transient/ directory.<br>They are not "enabled" or "disabled" but will be deleted once they are stopped or there's a reboot.<br>Realtime transient timers will reoccur while Monotonic ones will only execute once.<br>If no name is provided, one will be automatically generated.
 
    `$ ./timertab -u run mytimer`
 
