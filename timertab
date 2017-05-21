@@ -28,6 +28,9 @@ BW='\e[1;37m'  # Bold White
 UW='\e[4;37m'  # Underline White
 RST='\e[0m'    # Text color Reset
 
+# Set the path for when the --user option is specified
+USER_PATH="$HOME/.config/systemd/user/"
+
 # Text printing function
 function info {  # Equivalent to echo -e
     printf '%b\n' "$@"
@@ -57,9 +60,6 @@ elif [[ ( $1 == "-u" || $1 == "--user" ) && $# -gt 3 ]]; then
     disp_usage
 fi
 
-# Set the path for when the --user option is specified
-USER_PATH="$HOME/.config/systemd/user/"
-
 function disp_help {
 cat << EOF
 Usage: $0 [-u|--user] COMMAND [ARGUMENT...]
@@ -79,6 +79,7 @@ COMMANDS:
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
   modify [NAME...]   Opens the .timer file for editing in vi
+  run [NAME...]      Run a transient (temporary) timer
   convert            Convert a cron job into a Systemd timer
 
 EOF
@@ -301,14 +302,14 @@ function stop_timer {
 function status_timer {
     get_name "$1"
 
-	# Display the status of a specific timer
-	if [[ -n $user ]]; then
-		systemctl --user status "$name"
-	else
-		systemctl status "$name"
-	fi
+    # Display the status of a specific timer
+    if [[ -n $user ]]; then
+        systemctl --user status "$name"
+    else
+        systemctl status "$name"
+    fi
 
-	exit 0
+    exit 0
 }
 
 function disable_timer {
@@ -368,6 +369,21 @@ function modify_timer {
     exit 0
 }
 
+function timer_type {
+    echo 'Create a realtime or monotonic timer?'
+    PS3='Make a selection: '
+    options=("Realtime" "Monotonic")
+    select type in "${options[@]}"
+    do
+        case $type in
+            "Realtime") break;;
+            "Monotonic") break;;
+            *) echo "Invalid option";;
+        esac
+    done
+    echo
+}
+
 function new_timer {
     get_name "$1"
     get_path
@@ -423,20 +439,8 @@ function new_timer {
 
     # What type of timer will this be?
     info '\nRealtime timers will activate at a specific time or day.'
-    echo 'Monotonic timers will activate at specific intervals.'
-    echo
-    echo 'Create a realtime or monotonic timer?'
-    PS3='Make a selection: '
-    options=("Realtime" "Monotonic")
-    select type in "${options[@]}"
-    do
-        case $type in
-            "Realtime") break;;
-            "Monotonic") break;;
-            *) echo "Invalid option";;
-        esac
-    done
-    echo
+    info 'Monotonic timers will activate at specific intervals.\n'
+    timer_type
 
     # Setting timer frequencies
     if [[ $type == "Monotonic" ]]; then
@@ -476,39 +480,39 @@ function new_timer {
     do
         case $opts in
             "AccuracySec=")
-				read -rp 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec
-				echo;;
+                read -rp 'Specify accuracy: (VALUE [UNIT]) ' AccuracySec
+                echo;;
             "RandomizedDelaySec=")
-				read -rp 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec;
-				echo;;
+                read -rp 'Randomized delay: (VALUE [UNIT]) ' RandomizedDelaySec;
+                echo;;
             "Persistent=")
-				Persistent=true;
-				info 'Adding Persistent=true\n';;
+                Persistent=true;
+                info 'Adding Persistent=true\n';;
             "WakeSystem=")
-				WakeSystem=true;
-				info 'Adding WakeSystem=true\n';;
+                WakeSystem=true;
+                info 'Adding WakeSystem=true\n';;
             "RemainAfterElapse=")
-				RemainAfterElapse=false;
-				info 'Adding RemainAfterElapse=false\n';;
+                RemainAfterElapse=false;
+                info 'Adding RemainAfterElapse=false\n';;
             "Display options help")
-				echo;
-				timer_options;;
+                echo;
+                timer_options;;
             "Done adding options")
-				break;;
+                break;;
             *) info "Invalid option\n";;
         esac
     done
 
     if [[ -n $AccuracySec ]]; then
-		echo "AccuracySec=$AccuracySec" >> "$timer_file"; fi
+        echo "AccuracySec=$AccuracySec" >> "$timer_file"; fi
     if [[ -n $RandomizedDelaySec ]]; then
-		echo "RandomizedDelaySec=$RandomizedDelaySec" >> "$timer_file"; fi
+        echo "RandomizedDelaySec=$RandomizedDelaySec" >> "$timer_file"; fi
     if [[ -n $Persistent ]]; then
-		echo "Persistent=$Persistent" >> "$timer_file"; fi
+        echo "Persistent=$Persistent" >> "$timer_file"; fi
     if [[ -n $WakeSystem ]]; then
-		echo "WakeSystem=$WakeSystem" >> "$timer_file"; fi
+        echo "WakeSystem=$WakeSystem" >> "$timer_file"; fi
     if [[ -n $RemainAfterElapse ]]; then
-		echo "RemainAfterElapse=$RemainAfterElapse" >> "$timer_file"; fi
+        echo "RemainAfterElapse=$RemainAfterElapse" >> "$timer_file"; fi
 
     # The Unit= option is only used if the service being activated
     # is not the same name as the timer
@@ -524,14 +528,15 @@ function new_timer {
         # Creating the service file
         info "\n${UW}Let's create the service file${RST}"
         read -rp "<$srvc_name> Description: " Description
-        read -rp 'What command/script should the service run? (absolute path only) ' ExecStart
+        info 'What command or script should the service run?'
+        read -rp '(Absolute path only): ' ExecStart
         echo
 
         create_service_file
     fi
 
     # Prompt the user to start/enable the timer
-    read -rp "Would you like to start the timer now and enable it to run on boot? (y/N) " ans
+    read -rp "Start the timer now and enable it to run on boot? (y/N) " ans
     echo
     ans="$(echo "$ans" | tr '[:upper:]' '[:lower:]')"
     if [[ $ans == 'y' ]]; then
@@ -539,6 +544,77 @@ function new_timer {
         start_timer "$name"
     fi
 
+    exit 0
+}
+
+function run_timer {
+    # What type of timer will this be?
+    echo "A Realtime transient timer will actiavate at a specific time or day."
+    echo "  It is also reoccurring until it is stopped or there is a reboot."
+    echo "A Monotonic transient timer will only activate"\
+    "once after the specified amount of time."
+    echo
+    timer_type
+
+    # Setting timer frequencies
+    if [[ $type == "Monotonic" ]]; then
+        echo '(simply enter "s" without quotes to display the syntax)'
+        read -rp 'When should the timer activate? ' active
+        while [[ "$active" == "s" ]]; do
+            echo
+            time_syntax
+            read -rp 'When should the timer activate? ' active
+        done
+        echo
+        
+        # If there are spaces but no quotes, then add quotes
+        if [[ $active == *" "* ]]; then
+            if [[ $active != \"* ]]; then active="\"$active"; fi
+            if [[ $active != *\" ]]; then active="$active\""; fi
+        fi
+        
+        arg="--on-active=$active"
+    elif [[ $type == "Realtime" ]]; then
+        echo '(simply enter "s" without quotes to display the syntax)'
+        read -rp 'Enter the calendar event expression: ' oncal
+        while [[ "$oncal" == "s" ]]; do
+            echo
+            calendar_syntax
+            read -rp 'Enter the calendar event expression: ' oncal
+        done
+        echo
+
+        # If there are spaces but no quotes, then add quotes
+        if [[ $oncal == *" "* ]]; then
+            if [[ $oncal != \"* ]]; then oncal="\"$oncal"; fi
+            if [[ $oncal != *\" ]]; then oncal="$oncal\""; fi
+        fi
+        
+        arg="--on-calendar=$oncal"
+    fi
+
+    # Prompt the user for the name of the service/command
+    info "Enter the name of the service or command this timer should activate"
+    info "Hint: For a list of available services, use the following:"
+    info " $ systemctl list-unit-files --type=service"
+    read -rp "Name: " unit
+    echo
+    
+    # Run the command
+    if [[ -n $1 ]]; then  # If a name was passed with the command
+        if [[ -n $user ]]; then  # If the user option is set
+            systemd-run --user --unit="$1" "$arg" "$unit"
+        else
+            systemd-run --unit="$1" "$arg" "$unit"
+        fi
+    else
+        if [[ -n $user ]]; then  # If the user option is set
+            systemd-run --user "$arg" "$unit"
+        else
+            systemd-run "$arg" "$unit"
+        fi
+    fi
+    
     exit 0
 }
 
@@ -629,10 +705,10 @@ function convert {
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
-        -u|--user ) user='--user';;
+        -u|--user ) user=true;;
         -h|--help|help ) disp_help;;
         list ) list_timers;;
-        #run ) run_command;;
+        run ) run_timer "$2";;
         new ) new_timer "$2";;
         enable ) enable_timer "$2"; exit 0;;
         start ) start_timer "$2"; exit 0;;
@@ -648,7 +724,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   - Run a command once at a specified time with systemd-run
 #   - Allow user to convert all cron jobs into timers at once
 #   - Convert function can prompt user if they'd like to create a detailed timer
 #     (prompting for things like the name instead of assuming it)
@@ -657,3 +732,7 @@ done
 #   - Unable to convert user cron jobs to root level timers
 #     Workaround:
 #     Do the conversion with --user, and move the files to /etc/systemd/system/
+
+# Useful commands:
+#   - Get the status of a unit:
+#     systemctl is-enabled unitname  (timers will show as 'static')

@@ -19,6 +19,7 @@ COMMANDS:
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
   modify [NAME...]   Opens the .timer file for editing in vi
+  run [NAME...]      Run a transient (temporary) timer
   convert            Convert a cron job into a Systemd timer
 ```
 
@@ -44,10 +45,17 @@ COMMANDS:
 
    `$ ./timertab status mytimer`
 
+6. Create a transient (temporary) timer.
+   These timer files are created in the /run/user/$UID/systemd/transient/ directory.
+   They are not "enabled" or "disabled" but will be deleted once they are stopped or there's a reboot.
+   If no name is provided, one will be automatically generated.
+
+   `$ ./timertab -u run mytimer`
+
 #### Known Issues
 
 - Unable to convert user cron jobs to root level timers
 
   - Workaround:
   
-    Do the conversion with the `--user` option, and move the files to /etc/systemd/system/
+    Do the conversion with the `--user` option, and move the files from ~/.config/systemd/user/ to /etc/systemd/system/
