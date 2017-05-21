@@ -345,14 +345,26 @@ function remove_timer {
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [[ $ans == '' ]]; then ans="n"; fi
     done
+    echo
 
+	# If the timer file doesn't exist & the user wants to remove the service
+	# file, then let the script continue instead of exiting
+	if [[ $ans == 'y' ]]; then set +e; fi
+
+	# Attempt to remove the timer file
     rm "$timer_file"
-    info "\n$name has been removed from $path"
+	if [[ $? == '0' ]]; then
+        info "\n$name has been removed from $path"
+	fi
 
-    if [[ $ans == "y" ]]; then
-        prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev) # Removing extension
+	# Attempt to remove the service file
+    if [[ $ans == 'y' ]]; then
+		# First, remove the .timer extension
+        prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev)
         rm "$path$prefix.service"
-        echo "$prefix.service has been removed from $path"
+      	if [[ $? == '0' ]]; then
+            echo "$prefix.service has been removed from $path"
+		fi
     fi
 
     echo
@@ -596,9 +608,9 @@ function run_timer {
 
     # Prompt the user for the name of the command
     read -rp "Enter the command to activate: " command
-	echo "You entered:  $command"
+	cmd=($command)
     echo
-    
+
     # Run the command
     if [[ -n $1 ]]; then  # If a name was passed with the command
 		
@@ -608,12 +620,12 @@ function run_timer {
 	    else name="$1"; fi
 		
         if [[ -n $user ]]; then  # If the user option is set
-            systemd-run --user "--unit=$name $arg $command"
-        else systemd-run "--unit=$name $arg $command"; fi
+            systemd-run --user --unit="$name" "$arg" "${cmd[@]}"
+        else systemd-run --unit="$name" "$arg" "${cmd[@]}"; fi
     else
         if [[ -n $user ]]; then  # If the user option is set
-            systemd-run --user "$arg $command"
-        else systemd-run "$arg $command"; fi
+            systemd-run --user "$arg" "${cmd[@]}"
+        else systemd-run "$arg" "${cmd[@]}"; fi
     fi
     
     exit 0
@@ -732,8 +744,5 @@ done
 # Known issues:
 #   - Unable to convert user cron jobs to root level timers
 #     Workaround:
-#     Do the conversion with --user, and move the files to /etc/systemd/system/
-
-# Useful commands:
-#   - Get the status of a unit:
-#     systemctl is-enabled unitname  (timers will show as 'static')
+#     Do the conversion with --user and move the files
+#         from ~/.config/systemd/user/ to /etc/systemd/system/
