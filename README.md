@@ -8,6 +8,7 @@ Only use one command at a time
 
   -u, --user         Deal only with user timers (not run as root)
 
+The .timer extension is optional when specifying a timer name.
 COMMANDS:
   help               Display this help dialog
   list               List the current timers
@@ -19,7 +20,7 @@ COMMANDS:
   disable [NAME...]  Disable timer
   remove [NAME...]   Remove (delete) timer and/or associated service files
   modify [NAME...]   Opens the .timer file for editing in vi
-  run [NAME...]      Run a transient (temporary) timer
+  run [NAME...]      Run a command in a transient (temporary) timer
   convert            Convert a cron job into a Systemd timer
 ```
 
