@@ -347,24 +347,24 @@ function remove_timer {
     done
     echo
 
-	# If the timer file doesn't exist & the user wants to remove the service
-	# file, then let the script continue instead of exiting
-	if [[ $ans == 'y' ]]; then set +e; fi
+    # If the timer file doesn't exist & the user wants to remove the service
+    # file, then let the script continue instead of exiting
+    if [[ $ans == 'y' ]]; then set +e; fi
 
-	# Attempt to remove the timer file
+    # Attempt to remove the timer file
     rm "$timer_file"
-	if [[ $? == '0' ]]; then
+    if [[ $? == '0' ]]; then
         info "\n$name has been removed from $path"
-	fi
+    fi
 
-	# Attempt to remove the service file
+    # Attempt to remove the service file
     if [[ $ans == 'y' ]]; then
-		# First, remove the .timer extension
+        # First, remove the .timer extension
         prefix=$(echo "$name" | rev | cut -d '.' -f 2- | rev)
         rm "$path$prefix.service"
-      	if [[ $? == '0' ]]; then
+        if [[ $? == '0' ]]; then
             echo "$prefix.service has been removed from $path"
-		fi
+        fi
     fi
 
     echo
@@ -608,17 +608,17 @@ function run_timer {
 
     # Prompt the user for the name of the command
     read -rp "Enter the command to activate: " command
-	cmd=($command)
+    cmd=($command)
     echo
 
     # Run the command
     if [[ -n $1 ]]; then  # If a name was passed with the command
-		
-		# If the user specified the .timer extension, then remove it
-		if [[ $1 == *.timer ]]; then
-			name=$(echo $1 | rev | cut -d '.' -f 2- | rev)
-	    else name="$1"; fi
-		
+        
+        # If the user specified the .timer extension, then remove it
+        if [[ $1 == *.timer ]]; then
+            name=$(echo $1 | rev | cut -d '.' -f 2- | rev)
+        else name="$1"; fi
+        
         if [[ -n $user ]]; then  # If the user option is set
             systemd-run --user --unit="$name" "$arg" "${cmd[@]}"
         else systemd-run --unit="$name" "$arg" "${cmd[@]}"; fi
