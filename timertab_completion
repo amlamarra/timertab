@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+abs_path="/usr/bin/timertab"
+
+_script() {
+    local cur commands
+    commands=$($abs_path list_opts)
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    COMPREPLY=()
+    COMPREPLY=( $(compgen -W "${commands}" -- ${cur}) )
+
+    return 0
+}
+
+complete -o nospace -F _script timertab
