@@ -732,7 +732,7 @@ while [[ $# -gt 0 ]]; do
         modify ) modify_timer "$2";;
         convert ) convert "$2";;
         # list_opts is for the completion script
-        list_opts ) echo "-u --user help list new enable start stop status disable remove modify run convert";;
+        list_opts ) echo "-u --user -h --help help list new enable start stop status disable remove modify run convert";;
         * ) disp_usage;;
     esac
     shift
