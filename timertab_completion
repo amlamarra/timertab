@@ -12,4 +12,10 @@ _script() {
     return 0
 }
 
+# For ZSH compatibility
+if [[ -n "$ZSH_VERSION" ]]; then
+    autoload bashcompinit
+    bashcompinit
+fi
+
 complete -o nospace -F _script timertab
