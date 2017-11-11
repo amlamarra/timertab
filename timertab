@@ -21,7 +21,6 @@
 #######################################################################
 
 set -e
-echo
 
 # Defining some variables for font color
 BW='\e[1;37m'  # Bold White
@@ -38,10 +37,10 @@ function info {  # Equivalent to echo -e
 
 # Make sure systemd is installed
 command -v systemctl >/dev/null 2>&1 || { info \
-"I require Systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
+"\nI require Systemd, but it's not installed.  Aborting.\n" >&2; exit 1; }
 
 function disp_usage {
-    info "Usage:  $0 [-u|--user] COMMAND [ARGUMENT...]" >&2
+    info "\nUsage:  $0 [-u|--user] COMMAND [ARGUMENT...]" >&2
     info "For more help:  $0 help\n" >&2
     exit 1
 }
@@ -53,15 +52,16 @@ fi
 
 # Make sure the user isn't using too many commands
 if [[ ( $1 != "-u" && $1 != "--user" ) && $# -gt 2 ]]; then
-    info "Only use one option at a time\n"
+    info "\nOnly use one option at a time\n"
     disp_usage
 elif [[ ( $1 == "-u" || $1 == "--user" ) && $# -gt 3 ]]; then
-    info "Only use one option at a time (not including the user option)\n"
+    info "\nOnly use one option at a time (not including the user option)\n"
     disp_usage
 fi
 
 function disp_help {
 cat << EOF
+
 Manage your Systemd Timers
 Usage: $0 [-u|--user] COMMAND [ARGUMENT...]
 Only use one command at a time
@@ -70,7 +70,7 @@ Only use one command at a time
 
 The .timer extension is optional when specifying a timer name.
 COMMANDS:
-  help               Display this help dialog
+  -h|--help|help     Display this help dialog
   list               List the current timers
   new [NAME...]      Create a new timer
   enable [NAME...]   Enable timer

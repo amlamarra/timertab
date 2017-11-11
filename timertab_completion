@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This is a Bash completion script
+# It should be placed in /etc/bash_completion.d/
+# If you intall timertab from the AUR, that will be done automatically
 
 abs_path="/usr/bin/timertab"
 
@@ -11,11 +14,5 @@ _script() {
 
     return 0
 }
-
-# For ZSH compatibility
-if [[ -n "$ZSH_VERSION" ]]; then
-    autoload bashcompinit
-    bashcompinit
-fi
 
 complete -o nospace -F _script timertab
