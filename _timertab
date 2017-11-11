@@ -1,8 +1,0 @@
-#compdef timertab
-# This is a Zsh completion script.
-# It should be placed in /usr/share/zsh/functions/Completion/Zsh
-# If you intall timertab from the AUR, that will be done automatically
-
-local -a subcmds
-subcmds=($(timertab list_opts))
-_describe 'command' subcmds
