@@ -739,7 +739,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Features to implement:
-#   - Add a bash completion script
 #   - Allow user to convert all cron jobs into timers at once
 #   - Convert function can prompt user if they'd like to create a detailed timer
 #     (prompting for things like the name instead of assuming it)
