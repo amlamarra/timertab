@@ -91,22 +91,22 @@ function timer_options {
 cat << EOF
 AccuracySec=
     Specify the accuracy the timer shall elapse with. Defaults to 1min.
-    echo
+
 RandomizedDelaySec=
     Delay the timer by a randomly selected, evenly distributed amount of time
     between 0 and the specified time value. Defaults to 0, indicating that no
     randomized delay shall be applied.
-    echo
+
 Persistent=(true|false)
     If true, the time when the service was last triggered is stored on disk.
     The service unit is triggered immediately if the next run is missed.
     This is useful to catch up on missed runs of the service when the machine
     was off. Only use with OnCalendar= (realtime timers). Defaults to false.
-    echo
+
 WakeSystem=(true|false)
     If true, an elapsing timer will cause the system to resume from suspend,
     should it be suspended and if the system supports this. Defaults to false.
-    echo
+
 RemainAfterElapse=(true|false)
     If true, an elapsed timer will stay loaded, and its state remains queriable.
     If false, an elapsed timer unit that cannot elapse anymore is unloaded.
